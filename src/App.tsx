@@ -5,6 +5,7 @@ import HomeScreen from './screens/HomeScreen';
 import DetailScreen from './screens/DetailScreen';
 import AdminScreen from './screens/AdminScreen';
 import GamesScreen from './screens/GamesScreen';
+import MyScreen from './screens/MyScreen';
 import SafetyNotice from './components/SafetyNotice';
 import { alarmText, checkAlarms } from './lib/alarms';
 
@@ -22,7 +23,7 @@ export default function App() {
   }, [station]);
 
   const [toasts, setToasts] = useState<string[]>([]);
-  const [tab, setTab] = useState<'sea' | 'games'>('sea');
+  const [tab, setTab] = useState<'sea' | 'games' | 'my'>('sea');
 
   // 예약된 물때 알림 체커 — 앱이 열려 있는 동안 20초마다 확인
   useEffect(() => {
@@ -68,6 +69,8 @@ export default function App() {
       <DetailScreen station={station} onBack={() => setStation(null)} />
     ) : tab === 'games' ? (
       <GamesScreen />
+    ) : tab === 'my' ? (
+      <MyScreen onSelect={select} />
     ) : (
       <HomeScreen onSelect={select} />
     );
@@ -96,6 +99,16 @@ export default function App() {
               🎮
             </span>
             게임
+          </button>
+          <button
+            className={tab === 'my' ? 'active' : ''}
+            onClick={() => setTab('my')}
+            aria-current={tab === 'my' ? 'page' : undefined}
+          >
+            <span className="tab-icon" aria-hidden="true">
+              🗺️
+            </span>
+            내정보
           </button>
         </nav>
       )}

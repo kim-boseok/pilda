@@ -143,6 +143,15 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
 
       <div className="detail-body">
         <SummaryCard summary={summary} />
+        {/* 시간 여행은 바다 씬 변화를 보면서 조작해야 하므로 화면 상단(씬 바로 아래)에 배치 */}
+        <TimeSlider
+          start={start}
+          totalMinutes={SLIDER_HOURS * 60}
+          value={viewTime}
+          isNow={isNow}
+          onChange={onSlide}
+          onNow={goNow}
+        />
         <div className="sea-tags">
           {feature.tags.map((t) => (
             <span key={t} className="sea-tag">
@@ -167,14 +176,6 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
             setAlarmPick(e);
             setAlarmOpen(true);
           }}
-        />
-        <TimeSlider
-          start={start}
-          totalMinutes={SLIDER_HOURS * 60}
-          value={viewTime}
-          isNow={isNow}
-          onChange={onSlide}
-          onNow={goNow}
         />
         <TideTimeline
           extremes={visibleExtremes}

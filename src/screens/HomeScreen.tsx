@@ -44,7 +44,8 @@ const homeMemo: { tab: Tab; open: string | null; scrollY: number } = {
 export default function HomeScreen({ onSelect }: { onSelect: (s: Station) => void }) {
   const [tab, setTab] = useState<Tab>(homeMemo.tab);
   const [query, setQuery] = useState('');
-  // null = 기본(첫 자치도 열림), '' = 모두 닫힘, 그 외 = 해당 자치도만 열림
+  // null·'' = 모두 닫힘(기본), 그 외 = 해당 자치도만 열림
+  // 상세에 들어갔다 나오면 homeMemo 덕분에 보던 자치도가 그대로 열려 있다
   const [open, setOpen] = useState<string | null>(homeMemo.open);
   const [locating, setLocating] = useState(false);
   const [favIds] = useState<string[]>(loadFavs);
@@ -98,7 +99,7 @@ export default function HomeScreen({ onSelect }: { onSelect: (s: Station) => voi
     return out;
   }, [tab]);
 
-  const openName = open ?? provinces[0]?.name ?? '';
+  const openName = open ?? '';
 
   const switchTab = (t: Tab) => {
     setTab(t);

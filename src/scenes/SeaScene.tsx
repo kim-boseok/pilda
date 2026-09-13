@@ -72,6 +72,8 @@ interface SceneState {
   breakTimer: number;
   /** 파도가 물가에 닿았을 때 확 밀려드는 스와시 서지 (0~1.2, 서서히 감쇠) */
   swashBoost: number;
+  /** 파도가 지나간 자리에 남아 스르르 사라지는 거품 조각 */
+  foamPatches: { x: number; yo: number; r: number; a: number }[];
   /** 바람 셀 때 먼바다에 이는 흰 물머리 */
   caps: { x: number; f: number; tw: number }[];
   /** 바람 결 — 하늘을 스치는 스우시 라인 */
@@ -148,6 +150,7 @@ export default function SeaScene(props: SeaSceneProps): JSX.Element {
       ],
       breakTimer: 1.2,
       swashBoost: 0,
+      foamPatches: [],
       caps: Array.from({ length: 26 }, () => ({
         x: rnd(),
         f: rnd(),
@@ -239,6 +242,9 @@ function draw(ctx: CanvasRenderingContext2D, S: SceneState, p: SeaSceneProps, dt
   const windK = 0.7 + wind * 0.09;
   // 바람 세기 0~1 정규화 — 2m/s 이하 잔잔, 13m/s 이상 최대치
   const windN = clamp01((wind - 2) / 11);
+  // 바람 기준 파고 추정(풍랑 근사) — 파고가 높을수록 파도가 실제로 높이 솟는다
+  const waveH = Math.min(3, 0.2 + wind * wind * 0.012);
+  const heightN = clamp01((waveH - 0.4) / 2.2);
   const dirSign = p.direction === 'rising' ? 1 : p.direction === 'falling' ? -1 : 0.15;
 
   const horizonY = h * 0.3;
@@ -457,6 +463,8 @@ function draw(ctx: CanvasRenderingContext2D, S: SceneState, p: SeaSceneProps, dt
     drawBoat(ctx, S.boat.x * w, horizonY + 9 + Math.sin(t * 0.7) * 1.2, Math.max(0.7, w / 460), S.boat.dir, night, t);
   }
   const waveSign = dirSign >= 0 ? 1 : -1;
+  // 물가 물결도 파고가 높으면 더 크게 출렁인다
+  const windKL = windK * (1 + heightN * 0.35);
   const sh2 = lerpRGB(S.scratchB, SHALLOW_NIGHT, style.shallow, light);
   for (let i = 0; i < style.layers.length; i++) {
     const L = style.layers[i];
@@ -464,7 +472,7 @@ function draw(ctx: CanvasRenderingContext2D, S: SceneState, p: SeaSceneProps, dt
     S.scratchA[0] = sh2[0] + (255 - sh2[0]) * bright;
     S.scratchA[1] = sh2[1] + (255 - sh2[1]) * bright;
     S.scratchA[2] = sh2[2] + (255 - sh2[2]) * bright;
-    traceWave(ctx, w, edgeY + 5 + L.amp * windK, edgeY, L, t + i * 1.7, windK, waveSign);
+    traceWave(ctx, w, edgeY + 5 + L.amp * windKL, edgeY, L, t + i * 1.7, windKL, waveSign);
     ctx.fillStyle = css(S.scratchA, i === style.layers.length - 1 ? 0.95 : L.alpha);
     ctx.fill();
   }
@@ -479,16 +487,16 @@ function draw(ctx: CanvasRenderingContext2D, S: SceneState, p: SeaSceneProps, dt
       ctx.strokeStyle = `rgba(255,255,255,${aC})`;
       ctx.lineWidth = i === style.layers.length - 1 ? 1.4 : 1.1;
       ctx.beginPath();
-      ctx.moveTo(0, waveY(0, edgeY, L, t + i * 1.7, windK, waveSign) - 1);
+      ctx.moveTo(0, waveY(0, edgeY, L, t + i * 1.7, windKL, waveSign) - 1);
       for (let x = stepC; x <= w + stepC; x += stepC) {
-        ctx.lineTo(x, waveY(x, edgeY, L, t + i * 1.7, windK, waveSign) - 1);
+        ctx.lineTo(x, waveY(x, edgeY, L, t + i * 1.7, windKL, waveSign) - 1);
       }
       ctx.stroke();
     }
   }
 
   // ---- 밀려와 부서지는 파도 (브레이커) ----
-  drawBreakers(ctx, S, horizonY, edgeY, windN, light, dt);
+  drawBreakers(ctx, S, horizonY, edgeY, windN, heightN, light, dt);
 
   // 수면 잔반짝임 — 바람 따라 흩어지는 미세 글린트
   if (edgeY > horizonY + 30 && light > 0.5) {
@@ -567,9 +575,9 @@ function draw(ctx: CanvasRenderingContext2D, S: SceneState, p: SeaSceneProps, dt
     ctx.lineCap = 'round';
     ctx.beginPath();
     const stepF = Math.max(8, w / 60);
-    ctx.moveTo(0, waveY(0, edgeY, L, t + 3.4, windK, waveSign));
+    ctx.moveTo(0, waveY(0, edgeY, L, t + 3.4, windKL, waveSign));
     for (let x = stepF; x <= w + stepF; x += stepF) {
-      ctx.lineTo(x, waveY(x, edgeY, L, t + 3.4, windK, waveSign));
+      ctx.lineTo(x, waveY(x, edgeY, L, t + 3.4, windKL, waveSign));
     }
     ctx.stroke();
     ctx.strokeStyle = `rgba(255,255,255,${0.3 + 0.15 * Math.sin(t * 1.7 + 2) + 0.2 * S.swashBoost})`;
@@ -581,6 +589,20 @@ function draw(ctx: CanvasRenderingContext2D, S: SceneState, p: SeaSceneProps, dt
       if (x === 0) ctx.moveTo(x, yy); else ctx.lineTo(x, yy);
     }
     ctx.stroke();
+  }
+
+  // 물가에 남은 거품 조각 — 파도가 지나간 자리에서 스르르 사라진다
+  for (let i = S.foamPatches.length - 1; i >= 0; i--) {
+    const fp = S.foamPatches[i];
+    fp.a -= dt * 0.3;
+    if (fp.a <= 0.02) {
+      S.foamPatches.splice(i, 1);
+      continue;
+    }
+    ctx.fillStyle = `rgba(255,255,255,${fp.a * 0.5})`;
+    ctx.beginPath();
+    ctx.ellipse(fp.x * w, edgeY + 3 + fp.yo * (1.3 - fp.a), fp.r, fp.r * 0.28, 0, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   // ---- 갈매기 ----
@@ -607,6 +629,7 @@ function drawBreakers(
   horizonY: number,
   edgeY: number,
   windN: number,
+  heightN: number,
   light: number,
   dt: number,
 ): void {
@@ -634,6 +657,16 @@ function drawBreakers(
       S.breakers.splice(bi, 1);
       // 파도가 물가에 닿는 순간 — 물이 확 밀려들며 스와시가 살아난다
       S.swashBoost = Math.min(1.2, S.swashBoost + 0.7 + windN * 0.4);
+      // 지나간 자리에 거품 조각이 남는다
+      const nP = 4 + ((windN * 3) | 0);
+      for (let k = 0; k < nP && S.foamPatches.length < 24; k++) {
+        S.foamPatches.push({
+          x: S.rnd(),
+          yo: S.rnd() * 12,
+          r: 5 + S.rnd() * 9 * (1 + heightN * 0.5),
+          a: 0.55,
+        });
+      }
       continue;
     }
     const p2 = b.p;
@@ -644,13 +677,15 @@ function drawBreakers(
     const foamA = (0.18 + 0.66 * breaking) * fade * (0.45 + 0.55 * light) * b.amp * (0.7 + 0.5 * windN);
     if (foamA <= 0.02) continue;
     const kx = 0.02 / (0.45 + 0.55 * persp);
+    // 파고가 높을수록 파도가 실제로 높이 솟는다
+    const hK = 1 + heightN * 1.6;
     // 마루 파형은 제자리에서 숨쉬기만 — 가로로 흐르지 않는다
-    const cAmp = (3.4 + 2.4 * breaking) * persp * (0.85 + 0.15 * Math.sin(t * 2 + b.ph));
+    const cAmp = (3.4 + 2.4 * breaking) * persp * (0.85 + 0.15 * Math.sin(t * 2 + b.ph)) * (1 + heightN * 0.7);
     const crest = (x: number) => y + Math.sin(x * kx + b.ph) * cAmp;
     const step = Math.max(10, w / 46);
 
     // ① 파도가 솟아오른 어두운 앞면 (마루 위쪽 그늘 띠)
-    const faceH = (3 + 11 * breaking) * persp;
+    const faceH = (3 + 11 * breaking) * persp * hK;
     ctx.fillStyle = `rgba(12,44,80,${0.17 * persp * fade * light})`;
     ctx.beginPath();
     ctx.moveTo(0, crest(0) - faceH);
@@ -659,9 +694,20 @@ function drawBreakers(
     ctx.closePath();
     ctx.fill();
 
+    // ①-2 부서지기 직전, 마루 위로 햇빛이 투과하는 옥빛 립
+    if (light > 0.35) {
+      const lipA = (0.1 + 0.14 * breaking) * fade * light * persp;
+      ctx.strokeStyle = `rgba(110,215,205,${lipA})`;
+      ctx.lineWidth = (1.6 + 2.4 * persp) * hK;
+      ctx.beginPath();
+      ctx.moveTo(0, crest(0) - faceH * 0.55);
+      for (let x = step; x <= w + step; x += step) ctx.lineTo(x, crest(x) - faceH * 0.55);
+      ctx.stroke();
+    }
+
     // ② 마루 아래로 번지는 하얀 포말 (부서진 뒤)
     if (breaking > 0.02) {
-      const washH = (3 + 15 * breaking) * persp;
+      const washH = (3 + 15 * breaking) * persp * (1 + heightN * 0.8);
       ctx.fillStyle = `rgba(255,255,255,${foamA * 0.3})`;
       ctx.beginPath();
       ctx.moveTo(0, crest(0));
@@ -708,9 +754,23 @@ function drawBreakers(
       for (let k = 0; k < n; k++) {
         const fx = ((b.ph + k * 0.83) % 1 + 1) % 1;
         const bx = fx * w;
-        const by = crest(bx) - (1.5 + Math.sin(t * 3 + k * 2.1 + b.ph) * 1.2) * persp;
+        const by = crest(bx) - (1.5 + Math.sin(t * 3 + k * 2.1 + b.ph) * 1.2) * persp * hK;
         ctx.beginPath();
-        ctx.arc(bx, by, (0.9 + (k % 3) * 0.5) * persp * (0.6 + breaking * 0.6), 0, Math.PI * 2);
+        ctx.arc(bx, by, (0.9 + (k % 3) * 0.5) * persp * (0.6 + breaking * 0.6) * hK, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // ⑤ 물보라 — 세게 부서질 때 마루 위로 튀어오르는 작은 물방울
+    if (breaking > 0.5 && (windN > 0.25 || heightN > 0.3)) {
+      const nSp = (3 + (windN + heightN) * 4) | 0;
+      ctx.fillStyle = `rgba(255,255,255,${foamA * 0.5})`;
+      for (let k = 0; k < nSp; k++) {
+        const fx = ((b.ph * 1.7 + k * 0.41) % 1 + 1) % 1;
+        const sx2 = fx * w;
+        const lift2 = (3 + 7 * (windN + heightN) * Math.max(0, Math.sin(t * 4 + k * 1.9 + b.ph))) * persp;
+        ctx.beginPath();
+        ctx.arc(sx2, crest(sx2) - faceH * 0.3 - lift2, 0.8 * persp * hK, 0, Math.PI * 2);
         ctx.fill();
       }
     }

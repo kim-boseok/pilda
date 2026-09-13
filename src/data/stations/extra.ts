@@ -7,7 +7,7 @@ export const STATIONS_X: Station[] = [
   { id: 'PT_X_002', name: '백사마을 갯벌체험장', region: 'south', lat: 34.49288, lon: 126.7939, mudflat: true, group: '강진군', province: '전남광주통합특별시' }, // 강진 마량항 인근 4.7km
   { id: 'PT_X_003', name: '장양마을 갯벌체험장', region: 'south', lat: 34.8274, lon: 127.3944, mudflat: true, group: '보성군', province: '전남광주통합특별시' }, // 보성 벌교 갯벌 인근 5.5km
   { id: 'PT_X_004', name: '거차마을 갯벌체험장', region: 'south', lat: 34.8369, lon: 127.44654, mudflat: true, group: '순천시', province: '전남광주통합특별시' }, // 순천 화포해변 인근 5.4km
-  { id: 'PT_X_005', name: '냉천마을 갯벌체험장', region: 'south', lat: 34.9008, lon: 128.02302, mudflat: true, group: '사천시', province: '경상남도' }, // 사천 대방진굴항 인근 4.7km
+  { id: 'PT_X_005', name: '냉천마을 갯벌체험장', region: 'south', lat: 34.9008, lon: 128.02302, mudflat: true, group: '남해군', province: '경상남도' }, // 남해 창선면 당항리 — 물때는 건너편 삼천포항(DT_0061) 기준
   { id: 'PT_X_006', name: '문항마을 갯벌체험장', region: 'south', lat: 34.91482, lon: 127.92939, mudflat: true, group: '남해군', province: '경상남도' }, // 남해 설천면 (하동 중평항 인근 7.1km)
   { id: 'PT_X_007', name: '다대마을 갯벌체험장', region: 'south', lat: 34.73707, lon: 128.62805, mudflat: true, group: '거제시', province: '경상남도' }, // 거제 여차몽돌해변 인근 2.4km
   { id: 'PT_X_008', name: '돌머리마을 갯벌체험장', region: 'west', lat: 35.08682, lon: 126.43893, mudflat: true, group: '함평군', province: '전남광주통합특별시' }, // 주포항 인근 3.1km

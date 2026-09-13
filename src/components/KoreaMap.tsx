@@ -42,6 +42,37 @@ const ULLEUNG: [number, number][] = Array.from({ length: 10 }, (_, i) => {
   return [130.88 + Math.cos(a) * 0.06, 37.5 + Math.sin(a) * 0.05] as [number, number];
 });
 
+// 자치도(권역)별 색 구역 — 본토 외곽선으로 클리핑해서 칠한다
+// box = [lon0, lat0(남), lon1, lat1(북)], label = 이름 표시 위치
+interface Zone {
+  name: string;
+  box: [number, number, number, number];
+  color: string;
+  label: [number, number];
+}
+const ZONES: Zone[] = [
+  { name: '경기·인천', box: [124.6, 36.9, 127.3, 38.7], color: '#e2edfb', label: [126.95, 37.5] },
+  { name: '강원', box: [127.3, 37.0, 129.7, 38.7], color: '#ddf2e6', label: [128.35, 37.75] },
+  { name: '충청', box: [124.6, 36.0, 128.1, 36.9], color: '#fdf3d8', label: [126.95, 36.48] },
+  { name: '전북', box: [124.6, 35.45, 127.9, 36.0], color: '#eef6d9', label: [127.05, 35.72] },
+  { name: '전남·광주', box: [124.6, 33.8, 127.78, 35.45], color: '#fde8e0', label: [126.9, 34.98] },
+  { name: '경북', box: [128.1, 35.75, 129.7, 37.0], color: '#ede8f9', label: [128.8, 36.4] },
+  { name: '경남·부산', box: [127.78, 33.8, 129.7, 35.75], color: '#fceaf1', label: [128.35, 35.32] },
+  { name: '제주', box: [125.8, 32.95, 127.3, 33.75], color: '#ffefd8', label: [126.53, 33.68] },
+];
+const JEJU_COLOR = '#ffefd8';
+
+function unproject(wx: number, wy: number): { lon: number; lat: number } {
+  return { lon: ((wx - OFFX) * DEN) / KX + LON0, lat: LAT1 - wy * DEN };
+}
+
+/** 구역 박스를 화면에 딱 맞게 보여주는 배율 */
+function zoneFitScale(z: Zone): number {
+  const zw = ((z.box[2] - z.box[0]) * KX) / DEN;
+  const zh = (z.box[3] - z.box[1]) / DEN;
+  return Math.max(2.7, Math.min(4.4, 0.85 / Math.max(zw, zh)));
+}
+
 interface View {
   x: number;
   y: number;
@@ -57,8 +88,19 @@ export interface KoreaMapProps {
   focus?: { st: Station; n: number } | null;
 }
 
-const REGION_SCALE = 3.4; // 1단계: 지역 확대
-const SPOT_SCALE = 8.5;   // 2단계: 지점 확대
+// 3단계 줌: 전국(1) → 자치도(~3.x) → 시·군(~7) → 지점 카드(9)
+const ZONE_LEVEL = 2.1;   // 이 미만이면 전국 화면으로 취급
+const GROUP_LEVEL = 5.6;  // 이 미만이면 자치도 화면으로 취급
+const SPOT_SCALE = 9;
+
+interface GroupInfo {
+  name: string;
+  x: number;
+  y: number;
+  n: number;
+  ext: number; // 반경(월드 좌표)
+  stations: Station[];
+}
 
 export default function KoreaMap({ visits, favs, selected, onSelect, focus }: KoreaMapProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -79,15 +121,61 @@ export default function KoreaMap({ visits, favs, selected, onSelect, focus }: Ko
     return m;
   }, []);
 
-  /** 지점으로 향하는 토스식 2단계 줌 체인 */
-  const zoomToStation = (st: Station) => {
-    const p = pos.get(st.id)!;
-    const steps: View[] = [];
-    if (cur.current.s < REGION_SCALE - 0.6) {
-      steps.push({ x: p.x, y: p.y, s: REGION_SCALE });
+  // 시·군 단위 묶음 (중심점·반경) — 2단계 줌과 라벨에 사용
+  const groups = useMemo(() => {
+    const m = new Map<string, GroupInfo>();
+    for (const st of STATIONS) {
+      const key = `${st.province}|${st.group}`;
+      const p = pos.get(st.id)!;
+      let g = m.get(key);
+      if (!g) {
+        g = { name: st.group, x: 0, y: 0, n: 0, ext: 0, stations: [] };
+        m.set(key, g);
+      }
+      g.x += p.x;
+      g.y += p.y;
+      g.n++;
+      g.stations.push(st);
     }
+    for (const g of m.values()) {
+      g.x /= g.n;
+      g.y /= g.n;
+      for (const st of g.stations) {
+        const p = pos.get(st.id)!;
+        g.ext = Math.max(g.ext, Math.hypot(p.x - g.x, p.y - g.y));
+      }
+    }
+    return m;
+  }, [pos]);
+
+  const groupOf = (st: Station) => groups.get(`${st.province}|${st.group}`)!;
+
+  const groupView = (g: GroupInfo): View => ({
+    x: g.x,
+    y: g.y,
+    s: Math.max(6.2, Math.min(9.5, 0.4 / Math.max(g.ext, 0.035))),
+  });
+
+  const spotView = (st: Station): View => {
+    const p = pos.get(st.id)!;
     // 하단 카드에 가리지 않도록 지점을 화면 위쪽에 두는 오프셋
-    steps.push({ x: p.x, y: p.y + 0.22 / SPOT_SCALE, s: SPOT_SCALE });
+    return { x: p.x, y: p.y + 0.22 / SPOT_SCALE, s: SPOT_SCALE };
+  };
+
+  /** 지점으로 향하는 토스식 다단계 줌 체인 (자치도 → 시·군 → 지점) */
+  const zoomToStation = (st: Station) => {
+    const steps: View[] = [];
+    if (cur.current.s < ZONE_LEVEL) {
+      const z = ZONES.find(
+        (z) => st.lon >= z.box[0] && st.lon <= z.box[2] && st.lat >= z.box[1] && st.lat <= z.box[3],
+      );
+      if (z) {
+        const c = project((z.box[0] + z.box[2]) / 2, (z.box[1] + z.box[3]) / 2);
+        steps.push({ x: c.x, y: c.y, s: zoneFitScale(z) });
+      }
+    }
+    if (cur.current.s < GROUP_LEVEL) steps.push(groupView(groupOf(st)));
+    steps.push(spotView(st));
     queue.current = steps;
     selectRef.current(st);
   };
@@ -148,18 +236,47 @@ export default function KoreaMap({ visits, favs, selected, onSelect, focus }: Ko
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, W, H);
 
-      // 육지
+      // 육지 기본색
       ctx.fillStyle = '#f7f2e8';
+      for (const poly of [MAINLAND, JEJU, ULLEUNG]) {
+        tracePoly(poly, v);
+        ctx.fill();
+      }
+
+      // 자치도별 색 구역 — 본토 모양으로 클리핑해서 파스텔로 칠한다
+      ctx.save();
+      tracePoly(MAINLAND, v);
+      ctx.clip();
+      for (const z of ZONES) {
+        const a = project(z.box[0], z.box[3]);
+        const b = project(z.box[2], z.box[1]);
+        const pa = toScreen(a.x, a.y, v);
+        const pb = toScreen(b.x, b.y, v);
+        ctx.fillStyle = z.color;
+        ctx.fillRect(pa.x, pa.y, pb.x - pa.x, pb.y - pa.y);
+        ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(pa.x, pa.y, pb.x - pa.x, pb.y - pa.y);
+      }
+      ctx.restore();
+
+      // 제주는 별도 폴리곤 채색
+      ctx.fillStyle = JEJU_COLOR;
+      tracePoly(JEJU, v);
+      ctx.fill();
+
+      // 외곽선
       ctx.strokeStyle = '#d9cfbc';
       ctx.lineWidth = 1.2;
       for (const poly of [MAINLAND, JEJU, ULLEUNG]) {
         tracePoly(poly, v);
-        ctx.fill();
         ctx.stroke();
       }
 
-      // 지점 점 찍기
+      // 지점 점 찍기 (전국 화면에선 옅고 작게 → 확대하면 또렷하게)
       const f = Math.min(2.2, Math.sqrt(v.s));
+      const dotAlpha = v.s < ZONE_LEVEL ? 0.28 : 0.55;
+      const dotR = v.s < ZONE_LEVEL ? 1.1 : 1.6 * f;
       const favSet = new Set(fv);
       for (const st of STATIONS) {
         const w = pos.get(st.id)!;
@@ -170,10 +287,17 @@ export default function KoreaMap({ visits, favs, selected, onSelect, focus }: Ko
         const marked = state || isFavd;
 
         if (!marked) {
-          ctx.fillStyle = 'rgba(150,162,178,0.5)';
+          ctx.fillStyle = `rgba(150,162,178,${dotAlpha})`;
           ctx.beginPath();
-          ctx.arc(p.x, p.y, 1.5 * f, 0, Math.PI * 2);
+          ctx.arc(p.x, p.y, dotR, 0, Math.PI * 2);
           ctx.fill();
+          // 시·군 화면 이상으로 확대하면 모든 지점 이름 표시
+          if (v.s > 5.8) {
+            ctx.font = '500 10px Pretendard, sans-serif';
+            ctx.fillStyle = 'rgba(78,89,104,0.75)';
+            ctx.textAlign = 'left';
+            ctx.fillText(st.name, p.x + 6, p.y + 3.5);
+          }
           continue;
         }
 
@@ -193,12 +317,45 @@ export default function KoreaMap({ visits, favs, selected, onSelect, focus }: Ko
           ctx.arc(p.x, p.y, 4.6 * f, 0, Math.PI * 2);
           ctx.stroke();
         }
-        // 확대 시 이름 라벨
         if (v.s > 4.6) {
           ctx.font = '600 11px Pretendard, sans-serif';
           ctx.fillStyle = '#4a5568';
           ctx.textAlign = 'left';
           ctx.fillText(st.name, p.x + 7 * f, p.y + 4);
+        }
+      }
+
+      // 자치도 이름 라벨 (전국 화면에서 또렷, 확대하면 서서히 사라짐)
+      const zoneAlpha = Math.max(0, Math.min(1, (2.9 - v.s) / 1.1));
+      if (zoneAlpha > 0.02) {
+        ctx.font = '800 13px Pretendard, sans-serif';
+        ctx.textAlign = 'center';
+        for (const z of ZONES) {
+          const c = project(z.label[0], z.label[1]);
+          const p = toScreen(c.x, c.y, v);
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = `rgba(255,255,255,${0.9 * zoneAlpha})`;
+          ctx.strokeText(z.name, p.x, p.y);
+          ctx.fillStyle = `rgba(90,100,115,${zoneAlpha})`;
+          ctx.fillText(z.name, p.x, p.y);
+        }
+      }
+
+      // 시·군 이름 라벨 (자치도 화면에서 보임 — "군산"을 눌러 들어가는 안내)
+      const grpIn = Math.max(0, Math.min(1, (v.s - ZONE_LEVEL) / 0.35));
+      const grpOut = Math.max(0, Math.min(1, (6.6 - v.s) / 0.9));
+      const grpAlpha = Math.min(grpIn, grpOut);
+      if (grpAlpha > 0.02) {
+        ctx.font = '700 12px Pretendard, sans-serif';
+        ctx.textAlign = 'center';
+        for (const g of groups.values()) {
+          const p = toScreen(g.x, g.y, v);
+          if (p.x < -30 || p.x > W + 30 || p.y < -30 || p.y > H + 30) continue;
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = `rgba(255,255,255,${0.9 * grpAlpha})`;
+          ctx.strokeText(g.name, p.x, p.y - 8);
+          ctx.fillStyle = `rgba(70,80,95,${grpAlpha})`;
+          ctx.fillText(g.name, p.x, p.y - 8);
         }
       }
 
@@ -312,27 +469,58 @@ export default function KoreaMap({ visits, favs, selected, onSelect, focus }: Ko
       const py = e.clientY - r.top;
       const v = cur.current;
       const near = nearestStation(px, py);
+      const w = worldOf(px, py);
 
-      if (near.st && near.d < (v.s < REGION_SCALE - 0.6 ? 16 : 26)) {
-        // 지점 탭 → 2단계 확대 + 선택
-        const p = pos.get(near.st.id)!;
-        const steps: View[] = [];
-        if (v.s < REGION_SCALE - 0.6) steps.push({ x: p.x, y: p.y, s: REGION_SCALE });
-        steps.push({ x: p.x, y: p.y + 0.22 / SPOT_SCALE, s: SPOT_SCALE });
-        queue.current = steps;
-        selectRef.current(near.st);
-      } else if (v.s < REGION_SCALE - 0.6) {
-        // 빈 곳 탭(전국 화면) → 그 지역으로 확대
-        const w = worldOf(px, py);
-        queue.current = [
-          { x: Math.max(0.12, Math.min(0.88, w.x)), y: Math.max(0.12, Math.min(0.88, w.y)), s: REGION_SCALE },
-        ];
+      if (v.s < ZONE_LEVEL) {
+        // 1단계: 전국 → 탭한 자치도로 확대
+        const { lon, lat } = unproject(w.x, w.y);
+        const z = ZONES.find(
+          (z) => lon >= z.box[0] && lon <= z.box[2] && lat >= z.box[1] && lat <= z.box[3],
+        );
+        if (z) {
+          const c = project((z.box[0] + z.box[2]) / 2, (z.box[1] + z.box[3]) / 2);
+          queue.current = [{ x: c.x, y: c.y, s: zoneFitScale(z) }];
+        } else if (near.st && near.d < 18) {
+          // 구역 밖(울릉도 등) 지점은 바로 시·군으로
+          queue.current = [groupView(groupOf(near.st))];
+        }
         selectRef.current(null);
+      } else if (v.s < GROUP_LEVEL) {
+        // 2단계: 자치도 → 탭한 시·군으로 확대 (예: 전북에서 군산)
+        // 시·군 이름(중심)을 기준으로 판정해야 라벨을 눌렀을 때 확실히 들어간다
+        let bestG: GroupInfo | null = null;
+        let bestGD = 52;
+        for (const g of groups.values()) {
+          const p = toScreen(g.x, g.y, v);
+          const d = Math.hypot(p.x - px, p.y - py);
+          if (d < bestGD) {
+            bestGD = d;
+            bestG = g;
+          }
+        }
+        const g = bestG ?? (near.st && near.d < 34 ? groupOf(near.st) : null);
+        if (g) {
+          if (g.n === 1) {
+            // 지점이 하나뿐인 시·군은 바로 카드까지
+            queue.current = [spotView(g.stations[0])];
+            selectRef.current(g.stations[0]);
+          } else {
+            queue.current = [groupView(g)];
+            selectRef.current(null);
+          }
+        } else {
+          queue.current = [{ x: w.x, y: w.y, s: v.s }];
+          selectRef.current(null);
+        }
       } else {
-        // 확대 상태에서 빈 곳 탭 → 그쪽으로 살짝 이동 + 선택 해제
-        const w = worldOf(px, py);
-        queue.current = [{ x: w.x, y: w.y, s: v.s }];
-        selectRef.current(null);
+        // 3단계: 시·군 → 지점 선택 + 카드
+        if (near.st && near.d < 34) {
+          queue.current = [spotView(near.st)];
+          selectRef.current(near.st);
+        } else {
+          queue.current = [{ x: w.x, y: w.y, s: v.s }];
+          selectRef.current(null);
+        }
       }
     };
 

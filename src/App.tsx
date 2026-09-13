@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import type { Station } from './types';
-import { STATIONS } from './data/stations';
 import HomeScreen from './screens/HomeScreen';
 import DetailScreen from './screens/DetailScreen';
 import AdminScreen from './screens/AdminScreen';
@@ -9,18 +8,10 @@ import MyScreen from './screens/MyScreen';
 import SafetyNotice from './components/SafetyNotice';
 import { alarmText, checkAlarms } from './lib/alarms';
 
-const LAST_KEY = 'pilda_last_station';
-
 export default function App() {
   const [hash, setHash] = useState(() => location.hash);
-  const [station, setStation] = useState<Station | null>(() => {
-    const id = localStorage.getItem(LAST_KEY);
-    return STATIONS.find((s) => s.id === id) ?? null;
-  });
-
-  useEffect(() => {
-    if (station) localStorage.setItem(LAST_KEY, station.id);
-  }, [station]);
+  // 앱을 켜면 항상 홈 화면부터 시작한다 (마지막 본 바다 자동 복원 없음)
+  const [station, setStation] = useState<Station | null>(null);
 
   const [toasts, setToasts] = useState<string[]>([]);
   const [tab, setTab] = useState<'sea' | 'games' | 'my'>('sea');

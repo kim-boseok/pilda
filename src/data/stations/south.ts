@@ -97,8 +97,8 @@ export const STATIONS_S: Station[] = [
   // 통영시
   { id: 'PT_S_SARYANGDO', name: '사량도', region: 'south', lat: 34.8360, lon: 128.2300, mudflat: false, group: '통영시', province: '경상남도' },
   { id: 'PT_S_YOKJIDO', name: '욕지도', region: 'south', lat: 34.6250, lon: 128.2700, mudflat: false, group: '통영시', province: '경상남도' },
-  { id: 'PT_S_CHUDO', name: '통영 추도', region: 'south', lat: 34.7850, lon: 128.2950, mudflat: false, group: '통영시', province: '경상남도' },
-  { id: 'PT_S_YEONHWADO', name: '연화도', region: 'south', lat: 34.6740, lon: 128.3120, mudflat: false, group: '통영시', province: '경상남도' },
+  { id: 'PT_S_CHUDO', name: '통영 추도', region: 'south', lat: 34.7561, lon: 128.2981, mudflat: false, group: '통영시', province: '경상남도' },
+  { id: 'PT_S_YEONHWADO', name: '연화도', region: 'south', lat: 34.6452, lon: 128.3541, mudflat: false, group: '통영시', province: '경상남도' },
   { id: 'PT_S_DALAHANG', name: '통영 달아항', region: 'south', lat: 34.7600, lon: 128.3950, mudflat: false, group: '통영시', province: '경상남도' },
   { id: 'PT_S_CHEOKPO', name: '통영 산양 척포', region: 'south', lat: 34.7300, lon: 128.4200, mudflat: false, group: '통영시', province: '경상남도' },
   { id: 'PT_S_DONAM', name: '통영 도남관광지', region: 'south', lat: 34.8260, lon: 128.4170, mudflat: false, group: '통영시', province: '경상남도' },

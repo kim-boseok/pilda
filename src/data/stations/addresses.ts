@@ -31,7 +31,7 @@ export const ADDRESSES: Record<string, string> = {
   PT_E_CHANGPOMAL: '경상북도 영덕군 영덕읍', // 영덕해맞이공원(창포말)
   PT_E_CHUKSAN: '경상북도 영덕군 축산면', // 축산항
   PT_E_DAEJIN_YD: '경상북도 영덕군 영해면', // 대진해수욕장(영덕)
-  PT_E_GORAEBUL: '경상북도 영덕군 영해면', // 고래불해수욕장
+  PT_E_GORAEBUL: '경상북도 영덕군 병곡면', // 고래불해수욕장
   DT_0011: '경상북도 울진군 후포면', // 후포항
   PT_E_MANGYANG: '경상북도 울진군 평해읍', // 망양해수욕장
   PT_E_GUSAN: '경상북도 울진군 기성면', // 구산해수욕장
@@ -264,8 +264,8 @@ export const ADDRESSES: Record<string, string> = {
   PT_WJ_GYEMA: '전남광주통합특별시 영광군 홍농읍', // 계마항
   DT_0003: '전남광주통합특별시 영광군 홍농읍', // 영광 백수해안
   PT_WJ_BEOPSEONGPO: '전남광주통합특별시 영광군 법성면', // 법성포
-  PT_WJ_YEOMSAN: '전남광주통합특별시 영광군 백수읍', // 염산포구(설도항)
-  DT_0066: '전남광주통합특별시 영광군 백수읍', // 향화도항(칠산대교)
+  PT_WJ_YEOMSAN: '전남광주통합특별시 영광군 염산면', // 염산포구(설도항)
+  DT_0066: '전남광주통합특별시 영광군 염산면', // 향화도항(칠산대교)
   PT_WJ_SONGIDO: '전남광주통합특별시 영광군 낙월면', // 송이도
   PT_WJ_ANMADO: '전남광주통합특별시 영광군 낙월면', // 안마도
   PT_WJ_JUPO: '전남광주통합특별시 함평군 함평읍', // 주포항
@@ -280,9 +280,9 @@ export const ADDRESSES: Record<string, string> = {
   PT_WJ_SAOKDO: '전남광주통합특별시 신안군 지도읍', // 사옥도
   PT_WJ_JJANGTTUNGEO: '전남광주통합특별시 신안군 증도면', // 증도 짱뚱어다리
   PT_WJ_UJEON: '전남광주통합특별시 신안군 증도면', // 증도 우전해변
-  PT_WJ_DUNJANG: '전남광주통합특별시 신안군 압해읍', // 자은도 둔장해변
-  PT_WJ_BUNGYE: '전남광주통합특별시 신안군 압해읍', // 자은도 분계해변
-  PT_WJ_BAEKGIL: '전남광주통합특별시 신안군 압해읍', // 자은도 백길해변
+  PT_WJ_DUNJANG: '전남광주통합특별시 신안군 자은면', // 자은도 둔장해변
+  PT_WJ_BUNGYE: '전남광주통합특별시 신안군 자은면', // 자은도 분계해변
+  PT_WJ_BAEKGIL: '전남광주통합특별시 신안군 자은면', // 자은도 백길해변
   PT_WJ_CHUPO: '전남광주통합특별시 신안군 암태면', // 암태도 추포해변(노둣길)
   PT_WJ_PALGEUMDO: '전남광주통합특별시 신안군 팔금면', // 팔금도
   PT_WJ_SONGGONG: '전남광주통합특별시 신안군 압해읍', // 압해도 송공항
@@ -308,9 +308,9 @@ export const ADDRESSES: Record<string, string> = {
   DT_0007: '전남광주통합특별시 목포시', // 목포항
   PT_WJ_SAMHAKDO: '전남광주통합특별시 목포시', // 삼학도
   PT_WJ_YUDAL: '전남광주통합특별시 목포시', // 유달유원지
-  PT_WJ_GOHADO: '전남광주통합특별시 목포시', // 고하도
-  PT_WJ_DALLIDO: '전남광주통합특별시 목포시', // 달리도
-  PT_WJ_OEDALDO: '전남광주통합특별시 목포시', // 외달도해수욕장
+  PT_WJ_GOHADO: '전남광주통합특별시 목포시 달동', // 고하도
+  PT_WJ_DALLIDO: '전남광주통합특별시 목포시 달동', // 달리도
+  PT_WJ_OEDALDO: '전남광주통합특별시 목포시 달동', // 외달도해수욕장
   PT_WJ_NOKJIN: '전남광주통합특별시 진도군 군내면', // 진도 녹진(울돌목)
   PT_WJ_BYEOKPA: '전남광주통합특별시 진도군 고군면', // 벽파항
   PT_WJ_HOEDONG: '전남광주통합특별시 진도군 고군면', // 신비의바닷길(회동리)
@@ -350,35 +350,35 @@ export const ADDRESSES: Record<string, string> = {
   DT_0052: '인천광역시 연수구 송도동', // 송도
   PT_WN_SORAE: '인천광역시 남동구 논현동', // 소래포구
   PT_WN_SIDO: '인천광역시 옹진군 북도면', // 시도
-  PT_WN_SINDO: '인천광역시 옹진군', // 신도
-  PT_WN_MODO: '인천광역시 옹진군', // 모도
-  PT_WN_JANGBONGDO: '인천광역시 옹진군', // 장봉도
-  DT_0065: '인천광역시 옹진군', // 덕적도
+  PT_WN_SINDO: '인천광역시 옹진군 북도면', // 신도
+  PT_WN_MODO: '인천광역시 옹진군 북도면', // 모도
+  PT_WN_JANGBONGDO: '인천광역시 옹진군 북도면', // 장봉도
+  DT_0065: '인천광역시 옹진군 덕적면', // 덕적도
   PT_WN_SOYADO: '인천광역시 옹진군 덕적면', // 소야도
   PT_WN_MUNGAPDO: '인천광역시 옹진군 덕적면', // 문갑도
-  DT_0038: '인천광역시 옹진군', // 굴업도
-  PT_WN_JAWOLDO: '인천광역시 옹진군', // 자월도
-  PT_WN_SEUNGBONGDO: '인천광역시 옹진군', // 승봉도
-  PT_WN_DAEIJAKDO: '인천광역시 옹진군', // 대이작도
-  PT_WN_SOIJAKDO: '인천광역시 옹진군', // 소이작도
-  DT_0043: '인천광역시 옹진군', // 영흥도
+  DT_0038: '인천광역시 옹진군 덕적면', // 굴업도
+  PT_WN_JAWOLDO: '인천광역시 옹진군 자월면', // 자월도
+  PT_WN_SEUNGBONGDO: '인천광역시 옹진군 자월면', // 승봉도
+  PT_WN_DAEIJAKDO: '인천광역시 옹진군 자월면', // 대이작도
+  PT_WN_SOIJAKDO: '인천광역시 옹진군 자월면', // 소이작도
+  DT_0043: '인천광역시 옹진군 영흥면', // 영흥도
   PT_WN_SIMNIPO: '인천광역시 옹진군 영흥면', // 영흥도 십리포해변
   PT_WN_JANGGYEONGRI: '인천광역시 옹진군 영흥면', // 영흥도 장경리해변
-  PT_WN_SEONJAEDO: '인천광역시 옹진군', // 선재도
+  PT_WN_SEONJAEDO: '인천광역시 옹진군 영흥면', // 선재도
   DT_0059: '인천광역시 옹진군 백령면', // 백령도
-  PT_WN_SAGOT: '인천광역시 옹진군', // 백령도 사곶해변
-  PT_WN_KONGDOL: '인천광역시 옹진군', // 백령도 콩돌해안
-  DT_0036: '인천광역시 옹진군', // 대청도
+  PT_WN_SAGOT: '인천광역시 옹진군 백령면', // 백령도 사곶해변
+  PT_WN_KONGDOL: '인천광역시 옹진군 백령면', // 백령도 콩돌해안
+  DT_0036: '인천광역시 옹진군 대청면', // 대청도
   PT_WN_SOCHEONGDO: '인천광역시 옹진군 대청면', // 소청도
   DT_0060: '인천광역시 옹진군 연평면', // 연평도
   PT_WN_DAEMYEONG: '경기도 김포시 대곶면', // 대명항
-  PT_WN_WOLGOT: '경기도 시흥시', // 월곶포구
-  PT_WN_OIDO: '경기도 시흥시', // 오이도
+  PT_WN_WOLGOT: '경기도 시흥시 월곶동', // 월곶포구
+  PT_WN_OIDO: '경기도 시흥시 정왕동', // 오이도
   PT_WN_BANGAMEORI: '경기도 안산시 대부동', // 대부도 방아머리해변
   PT_WN_GUBONGDO: '경기도 안산시 대부동', // 대부도 구봉도
   PT_WN_JONGHYEON: '경기도 안산시 대부동', // 종현어촌체험마을(선감도)
   DT_0008: '경기도 안산시 대부동', // 탄도항
-  PT_WN_JEBUDO: '경기도 화성시', // 제부도
+  PT_WN_JEBUDO: '경기도 화성시 서신면', // 제부도
   PT_WN_JEONGOK: '경기도 화성시 서신면', // 전곡항
   PT_WN_BAEKMIRI: '경기도 화성시 서신면', // 백미리 어촌체험마을
   PT_WN_GUNGPYEONG: '경기도 화성시 서신면', // 궁평항
@@ -395,7 +395,7 @@ export const ADDRESSES: Record<string, string> = {
   PT_WN_SAMGILPO: '충청남도 서산시 대산읍', // 삼길포항
   PT_WN_BEOLCHEONPO: '충청남도 서산시 대산읍', // 벌천포해변
   PT_WN_UNGDO: '충청남도 서산시 대산읍', // 웅도
-  PT_WN_HAGAMPO: '충청남도 태안군', // 학암포해수욕장
+  PT_WN_HAGAMPO: '충청남도 태안군 원북면', // 학암포해수욕장
   PT_WN_GUREUMPO: '충청남도 태안군 소원면', // 구름포해수욕장
   PT_WN_SINDURI: '충청남도 태안군 원북면', // 신두리해수욕장
   PT_WN_CHEONRIPO: '충청남도 태안군 소원면', // 천리포해수욕장
@@ -403,8 +403,8 @@ export const ADDRESSES: Record<string, string> = {
   PT_WN_TAEAN_MOHANG: '충청남도 태안군 소원면', // 모항항
   PT_WN_EOEUNDOL: '충청남도 태안군 소원면', // 어은돌해변
   PT_WN_PADORI: '충청남도 태안군 소원면', // 파도리해변
-  PT_WN_GAUIDO: '충청남도 태안군', // 가의도
-  DT_0067: '충청남도 태안군', // 안흥항(신진도)
+  PT_WN_GAUIDO: '충청남도 태안군 근흥면', // 가의도
+  DT_0067: '충청남도 태안군 근흥면', // 안흥항(신진도)
   PT_WN_YEONPO: '충청남도 태안군 근흥면', // 연포해수욕장
   PT_WN_MONGSANPO: '충청남도 태안군 남면', // 몽산포해수욕장
   PT_WN_CHEONGPODAE: '충청남도 태안군 남면', // 청포대해수욕장
@@ -423,26 +423,26 @@ export const ADDRESSES: Record<string, string> = {
   DT_0025: '충청남도 보령시 남포면', // 대천해수욕장
   PT_WN_MUCHANGPO: '충청남도 보령시 남포면', // 무창포해수욕장
   PT_WN_JUKDO: '충청남도 보령시 웅천읍', // 죽도(무창포)
-  PT_WN_WONSANDO: '충청남도 보령시', // 원산도
-  PT_WN_SAPSIDO: '충청남도 보령시', // 삽시도
-  PT_WN_JANGGODO: '충청남도 보령시', // 장고도
-  PT_WN_GODAEDO: '충청남도 보령시', // 고대도
-  PT_WN_HODO: '충청남도 보령시', // 호도
-  PT_WN_NOKDO: '충청남도 보령시', // 녹도
-  PT_WN_OEYEONDO: '충청남도 보령시', // 외연도
+  PT_WN_WONSANDO: '충청남도 보령시 오천면', // 원산도
+  PT_WN_SAPSIDO: '충청남도 보령시 오천면', // 삽시도
+  PT_WN_JANGGODO: '충청남도 보령시 오천면', // 장고도
+  PT_WN_GODAEDO: '충청남도 보령시 오천면', // 고대도
+  PT_WN_HODO: '충청남도 보령시 오천면', // 호도
+  PT_WN_NOKDO: '충청남도 보령시 오천면', // 녹도
+  PT_WN_OEYEONDO: '충청남도 보령시 오천면', // 외연도
   PT_WN_CHUNJANGDAE: '충청남도 서천군 서면', // 춘장대해수욕장
   PT_WN_HONGWON: '충청남도 서천군 서면', // 홍원항
   DT_0051: '충청남도 서천군 서면', // 마량포구
   DT_0024: '충청남도 서천군 장항읍', // 장항
-  PT_WN_GAEYADO: '전북특별자치도 군산시', // 개야도
+  PT_WN_GAEYADO: '전북특별자치도 군산시 옥도면', // 개야도
   DT_0018: '전북특별자치도 군산시', // 군산항
-  PT_WN_BIEUNG: '전북특별자치도 군산시', // 비응항
-  PT_WN_YAMIDO: '전북특별자치도 군산시', // 야미도
-  PT_WN_SINSIDO: '전북특별자치도 군산시', // 신시도
-  PT_WN_BANGCHUKDO: '전북특별자치도 군산시', // 방축도
-  PT_WN_MUNYEODO: '전북특별자치도 군산시', // 무녀도
-  PT_WN_SEONYUDO: '전북특별자치도 군산시', // 선유도
-  PT_WN_JANGJADO: '전북특별자치도 군산시', // 장자도
+  PT_WN_BIEUNG: '전북특별자치도 군산시 비응도동', // 비응항
+  PT_WN_YAMIDO: '전북특별자치도 군산시 옥도면', // 야미도
+  PT_WN_SINSIDO: '전북특별자치도 군산시 옥도면', // 신시도
+  PT_WN_BANGCHUKDO: '전북특별자치도 군산시 옥도면', // 방축도
+  PT_WN_MUNYEODO: '전북특별자치도 군산시 옥도면', // 무녀도
+  PT_WN_SEONYUDO: '전북특별자치도 군산시 옥도면', // 선유도
+  PT_WN_JANGJADO: '전북특별자치도 군산시 옥도면', // 장자도
   DT_0037: '전북특별자치도 군산시 옥도면', // 어청도
   PT_WN_SIMPO: '전북특별자치도 김제시 광활면', // 심포항
   PT_WN_BYEONSAN: '전북특별자치도 부안군 변산면', // 변산해수욕장
@@ -468,7 +468,7 @@ export const ADDRESSES: Record<string, string> = {
   PT_X_012: '경기도 안산시 대부동', // 선감마을 갯벌체험장
   PT_X_013: '충청남도 태안군 이원면', // 만대마을 갯벌체험장
   PT_X_014: '충청남도 서천군 서면', // 월하성마을 갯벌체험장
-  PT_X_015: '전북특별자치도 군산시', // 신시도마을 갯벌체험장
+  PT_X_015: '전북특별자치도 군산시 옥도면', // 신시도마을 갯벌체험장
   PT_X_016: '전북특별자치도 고창군 심원면', // 만돌마을 갯벌체험장
   PT_X_017: '전북특별자치도 고창군 심원면', // 하전마을 갯벌체험장
 };

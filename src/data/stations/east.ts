@@ -15,7 +15,7 @@ export const STATIONS_E: Station[] = [
   // ── 울산광역시 · 동구·북구 ──
   { id: 'PT_E_DAEWANGAM', name: '대왕암공원', region: 'east', lat: 35.4870, lon: 129.4448, mudflat: false, group: '동구·북구', province: '울산광역시' },
   { id: 'PT_E_ILSAN', name: '일산해수욕장', region: 'east', lat: 35.4972, lon: 129.4306, mudflat: false, group: '동구·북구', province: '울산광역시' },
-  { id: 'PT_E_JUJEON', name: '주전몽돌해변', region: 'east', lat: 35.5266, lon: 129.4570, mudflat: false, group: '동구·북구', province: '울산광역시' },
+  { id: 'PT_E_JUJEON', name: '주전몽돌해변', region: 'east', lat: 35.5656, lon: 129.4552, mudflat: false, group: '동구·북구', province: '울산광역시' },
   { id: 'PT_E_JEONGJA', name: '정자해변', region: 'east', lat: 35.6175, lon: 129.4531, mudflat: false, group: '동구·북구', province: '울산광역시' },
   { id: 'PT_E_GANGDONG', name: '강동몽돌해변', region: 'east', lat: 35.6360, lon: 129.4520, mudflat: false, group: '동구·북구', province: '울산광역시' },
 
@@ -34,7 +34,7 @@ export const STATIONS_E: Station[] = [
   { id: 'PT_E_CHILPO', name: '칠포해수욕장', region: 'east', lat: 36.1150, lon: 129.3940, mudflat: false, group: '포항시', province: '경상북도' },
   { id: 'PT_E_ODORI', name: '오도리해변', region: 'east', lat: 36.1450, lon: 129.3985, mudflat: false, group: '포항시', province: '경상북도' },
   { id: 'PT_E_IGARI', name: '이가리닻전망대', region: 'east', lat: 36.1580, lon: 129.3960, mudflat: false, group: '포항시', province: '경상북도' },
-  { id: 'PT_E_WOLPO', name: '월포해수욕장', region: 'east', lat: 36.1790, lon: 129.3900, mudflat: false, group: '포항시', province: '경상북도' },
+  { id: 'PT_E_WOLPO', name: '월포해수욕장', region: 'east', lat: 36.2023, lon: 129.3711, mudflat: false, group: '포항시', province: '경상북도' },
   { id: 'PT_E_HWAJIN', name: '화진해변', region: 'east', lat: 36.2110, lon: 129.3870, mudflat: false, group: '포항시', province: '경상북도' },
 
   // ── 경상북도 · 영덕군 ──
@@ -43,8 +43,8 @@ export const STATIONS_E: Station[] = [
   { id: 'PT_E_GANGGU', name: '강구항', region: 'east', lat: 36.3590, lon: 129.3900, mudflat: false, group: '영덕군', province: '경상북도' },
   { id: 'PT_E_CHANGPOMAL', name: '영덕해맞이공원(창포말)', region: 'east', lat: 36.4180, lon: 129.4330, mudflat: false, group: '영덕군', province: '경상북도' },
   { id: 'PT_E_CHUKSAN', name: '축산항', region: 'east', lat: 36.5070, lon: 129.4470, mudflat: false, group: '영덕군', province: '경상북도' },
-  { id: 'PT_E_DAEJIN_YD', name: '대진해수욕장(영덕)', region: 'east', lat: 36.5290, lon: 129.4430, mudflat: false, group: '영덕군', province: '경상북도' },
-  { id: 'PT_E_GORAEBUL', name: '고래불해수욕장', region: 'east', lat: 36.5660, lon: 129.4280, mudflat: false, group: '영덕군', province: '경상북도' },
+  { id: 'PT_E_DAEJIN_YD', name: '대진해수욕장(영덕)', region: 'east', lat: 36.5645, lon: 129.4267, mudflat: false, group: '영덕군', province: '경상북도' },
+  { id: 'PT_E_GORAEBUL', name: '고래불해수욕장', region: 'east', lat: 36.5989, lon: 129.411, mudflat: false, group: '영덕군', province: '경상북도' },
 
   // ── 경상북도 · 울진군 ──
   { id: 'DT_0011', name: '후포항', region: 'east', lat: 36.6776, lon: 129.4534, mudflat: false, group: '울진군', province: '경상북도' },
@@ -119,7 +119,7 @@ export const STATIONS_E: Station[] = [
   { id: 'PT_E_SONGJIHO', name: '송지호해변', region: 'east', lat: 38.3290, lon: 128.5360, mudflat: false, group: '고성군', province: '강원특별자치도' },
   { id: 'PT_E_GAJIN', name: '가진항', region: 'east', lat: 38.3730, lon: 128.5100, mudflat: false, group: '고성군', province: '강원특별자치도' },
   { id: 'PT_E_GEOJIN', name: '거진항', region: 'east', lat: 38.4460, lon: 128.4590, mudflat: false, group: '고성군', province: '강원특별자치도' },
-  { id: 'PT_E_BANAM', name: '반암해변', region: 'east', lat: 38.4670, lon: 128.4440, mudflat: false, group: '고성군', province: '강원특별자치도' },
+  { id: 'PT_E_BANAM', name: '반암해변', region: 'east', lat: 38.4215, lon: 128.4628, mudflat: false, group: '고성군', province: '강원특별자치도' },
   { id: 'PT_E_HWAJINPO', name: '화진포', region: 'east', lat: 38.4780, lon: 128.4360, mudflat: false, group: '고성군', province: '강원특별자치도' },
   { id: 'PT_E_DAEJIN_GS', name: '대진항(고성)', region: 'east', lat: 38.5000, lon: 128.4250, mudflat: false, group: '고성군', province: '강원특별자치도' },
   { id: 'PT_E_MYEONGPA', name: '명파해변', region: 'east', lat: 38.5300, lon: 128.4070, mudflat: false, group: '고성군', province: '강원특별자치도' },

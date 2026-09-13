@@ -51,3 +51,31 @@ export function getAddress(station: Station): string {
 export function getTourInfo(station: Station) {
   return TOUR_INFO[station.id];
 }
+
+/**
+ * 주소에서 읍·면·동만 떼어낸다 — 지도 3단계(면 단위) 묶음에 쓴다
+ * '전남광주통합특별시 신안군 임자면 광산리' → '임자면'
+ * 시·군·구 바로 다음 칸만 본다 ('창원시 마산합포구'처럼 구가 한 번 더 나오면 그 뒤)
+ */
+function townOfAddress(addr: string | undefined): string | null {
+  if (!addr) return null;
+  const parts = addr.split(/\s+/);
+  let gi = parts.findIndex((p, i) => i > 0 && /(시|군|구)$/.test(p));
+  if (gi < 0) return null;
+  if (gi + 1 < parts.length && /구$/.test(parts[gi + 1])) gi++;
+  const town = parts[gi + 1];
+  return town && /(읍|면|동)$/.test(town) ? town : null;
+}
+
+const TOWN_CACHE = new Map<string, string | null>();
+
+/** 지점이 속한 읍·면·동 (모르면 null) */
+export function getTown(station: Station): string | null {
+  let t = TOWN_CACHE.get(station.id);
+  if (t === undefined) {
+    // 읍면동은 OSM 주소가 일관적이다 (관광공사 주소는 도로명이라 동이 빠지기도 함)
+    t = townOfAddress(ADDRESSES[station.id]) ?? townOfAddress(TOUR_INFO[station.id]?.addr);
+    TOWN_CACHE.set(station.id, t);
+  }
+  return t;
+}

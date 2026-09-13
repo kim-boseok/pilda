@@ -28,6 +28,20 @@ function todayStart(): Date {
   return new Date(n.getFullYear(), n.getMonth(), n.getDate());
 }
 
+/** 클립보드 복사 (구형 브라우저 폴백 포함) */
+async function copyText(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+  }
+}
+
 export default function DetailScreen({ station, onBack }: { station: Station; onBack: () => void }) {
   const [days, setDays] = useState<DayTide[] | null>(null);
   const [wind, setWind] = useState<WindInfo | null>(null);
@@ -39,6 +53,7 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
   const [alarmPick, setAlarmPick] = useState<TideExtreme | null>(null);
   const [fav, setFav] = useState(() => isFav(station.id));
   const [copied, setCopied] = useState(false);
+  const [addrCopied, setAddrCopied] = useState(false);
   const [obs, setObs] = useState<BuoyObs | null>(null);
   const [indices, setIndices] = useState<{
     mud: MudflatIndex | null;
@@ -133,20 +148,18 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
   // 이 바다의 공유 주소를 클립보드에 복사
   const copyLink = useCallback(async () => {
     const url = `${location.origin}${location.pathname}#sea/${encodeURIComponent(station.id)}`;
-    try {
-      await navigator.clipboard.writeText(url);
-    } catch {
-      // 구형 브라우저 대비
-      const ta = document.createElement('textarea');
-      ta.value = url;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      ta.remove();
-    }
+    await copyText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, [station.id]);
+
+  // 행정구역 주소 (예: '인천광역시 강화군') 복사 — 지도 앱에 붙여넣기 좋게
+  const address = `${station.province} ${station.group}`;
+  const copyAddr = useCallback(async () => {
+    await copyText(address);
+    setAddrCopied(true);
+    setTimeout(() => setAddrCopied(false), 2000);
+  }, [address]);
 
   if (!days || !wind || !sun) {
     return (
@@ -249,6 +262,12 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
                 {speciesIcon(sp)} {sp} 서식
               </span>
             ))}
+        </div>
+        <div className="sea-addr">
+          <span className="sea-addr-text">📍 {address}</span>
+          <button className="sea-addr-copy" onClick={() => void copyAddr()}>
+            {addrCopied ? '복사됨 ✓' : '복사'}
+          </button>
         </div>
         <GoldenTimes
           day={viewDay}

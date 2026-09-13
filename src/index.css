@@ -1190,6 +1190,34 @@ input[type='range'].time-range::-webkit-slider-thumb {
   color: #2c7a39;
 }
 
+/* 행정구역 주소 + 복사 버튼 */
+.sea-addr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: -2px;
+}
+
+.sea-addr-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+.sea-addr-copy {
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #eef3f8;
+  color: #4b90e2;
+  transition: transform 0.12s ease;
+}
+
+.sea-addr-copy:active {
+  transform: scale(0.93);
+}
+
 /* 타임라인 알림 버튼 */
 .tide-alarm-btn {
   width: 34px;

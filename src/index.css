@@ -1803,3 +1803,23 @@ button.golden-chip:active {
   font-size: 11px;
   color: var(--text-weak);
 }
+
+/* 공유 주소 복사 알림 */
+.copy-toast {
+  position: absolute;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 40, 70, 0.82);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 999px;
+  z-index: 5;
+  animation: copy-pop 0.25s ease-out;
+}
+@keyframes copy-pop {
+  from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}

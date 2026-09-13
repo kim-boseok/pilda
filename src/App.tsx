@@ -7,12 +7,19 @@ import GamesScreen from './screens/GamesScreen';
 import MyScreen from './screens/MyScreen';
 import SafetyNotice from './components/SafetyNotice';
 import { alarmText, checkAlarms } from './lib/alarms';
+import { findStation } from './data/stations';
+
+/** 공유 주소(#sea/지점ID)에서 지점 찾기 */
+function stationFromHash(): Station | null {
+  const m = location.hash.match(/^#sea\/(.+)$/);
+  return m ? (findStation(decodeURIComponent(m[1])) ?? null) : null;
+}
 
 export default function App() {
   const [hash, setHash] = useState(() => location.hash);
   const [path, setPath] = useState(() => location.pathname);
-  // 앱을 켜면 항상 홈 화면부터 시작한다 (마지막 본 바다 자동 복원 없음)
-  const [station, setStation] = useState<Station | null>(null);
+  // 기본은 홈 화면부터 시작하되, 공유 주소(#sea/…)로 들어오면 그 바다를 바로 연다
+  const [station, setStation] = useState<Station | null>(stationFromHash);
 
   const [toasts, setToasts] = useState<string[]>([]);
   const [tab, setTab] = useState<'sea' | 'games' | 'my'>('sea');
@@ -33,7 +40,8 @@ export default function App() {
 
   useEffect(() => {
     const onPop = () => {
-      setStation(null);
+      // 뒤로/앞으로 가기 시 주소의 #sea/… 를 보고 화면을 복원한다
+      setStation(stationFromHash());
       setPath(location.pathname);
     };
     const onHash = () => setHash(location.hash);
@@ -46,8 +54,20 @@ export default function App() {
   }, []);
 
   const select = (s: Station) => {
-    history.pushState({ station: s.id }, '');
+    // 바다마다 복사·공유 가능한 고유 주소를 부여한다
+    history.pushState({ station: s.id }, '', `#sea/${encodeURIComponent(s.id)}`);
     setStation(s);
+  };
+
+  const closeDetail = () => {
+    const st = history.state as { station?: string } | null;
+    if (st?.station) {
+      history.back(); // popstate가 주소·화면을 함께 복원
+    } else {
+      // 공유 주소로 바로 들어온 경우 — 히스토리에 쌓인 게 없으니 주소만 정리
+      history.replaceState(null, '', location.pathname);
+      setStation(null);
+    }
   };
 
   // 관리자 페이지: /admin 주소 또는 #admin 으로 접근 (비밀번호 필요)
@@ -66,7 +86,7 @@ export default function App() {
         }}
       />
     ) : station ? (
-      <DetailScreen station={station} onBack={() => setStation(null)} />
+      <DetailScreen station={station} onBack={closeDetail} />
     ) : tab === 'games' ? (
       <GamesScreen />
     ) : tab === 'my' ? (

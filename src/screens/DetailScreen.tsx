@@ -38,6 +38,7 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
   const [alarmOpen, setAlarmOpen] = useState(false);
   const [alarmPick, setAlarmPick] = useState<TideExtreme | null>(null);
   const [fav, setFav] = useState(() => isFav(station.id));
+  const [copied, setCopied] = useState(false);
   const [obs, setObs] = useState<BuoyObs | null>(null);
   const [indices, setIndices] = useState<{
     mud: MudflatIndex | null;
@@ -129,6 +130,24 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
     setIsNow(true);
   }, []);
 
+  // 이 바다의 공유 주소를 클립보드에 복사
+  const copyLink = useCallback(async () => {
+    const url = `${location.origin}${location.pathname}#sea/${encodeURIComponent(station.id)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      // 구형 브라우저 대비
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [station.id]);
+
   if (!days || !wind || !sun) {
     return (
       <div className="loading-wrap">
@@ -177,6 +196,9 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
           </button>
           <span className="detail-station-name">{station.name}</span>
           <span className="topbar-actions">
+            <button className="icon-btn" aria-label="주소 복사" onClick={() => void copyLink()}>
+              {copied ? '✅' : '🔗'}
+            </button>
             <button
               className={`icon-btn${fav ? ' fav-on' : ''}`}
               aria-label="즐겨찾기"
@@ -196,6 +218,7 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
             </button>
           </span>
         </div>
+        {copied && <div className="copy-toast">주소를 복사했어요 ✓</div>}
         <div className="scene-time-chip">
           {fmtDayLabel(viewTime, new Date())} {fmtTime(viewTime)}
           {wxEmoji ? ` ${wxEmoji}` : ''} · {dirText}

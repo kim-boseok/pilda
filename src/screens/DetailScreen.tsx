@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { DayTide, Station, SunInfo, TideExtreme, WindInfo } from '../types';
+import type { DayTide, Station, SunInfo, TideExtreme, WeatherInfo, WindInfo } from '../types';
 import { getProvider, isLiveMode } from '../data/provider';
+import { cloudCoverOf, pickHour, precipOf, weatherEmoji } from '../data/kmaWeather';
 import { getSeaState } from '../engine/tide';
 import { getSummary } from '../engine/summary';
 import SeaScene from '../scenes/SeaScene';
@@ -26,6 +27,7 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
   const [days, setDays] = useState<DayTide[] | null>(null);
   const [wind, setWind] = useState<WindInfo | null>(null);
   const [sun, setSun] = useState<SunInfo | null>(null);
+  const [weather, setWeather] = useState<WeatherInfo | null>(null);
   const [viewTime, setViewTime] = useState(() => new Date());
   const [isNow, setIsNow] = useState(true);
   const [alarmOpen, setAlarmOpen] = useState(false);
@@ -54,6 +56,14 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
       setWind(w);
       setSun(provider.getSun(station, new Date()));
     });
+    // 날씨는 씬 연출용 — 실패해도 화면은 뜨도록 따로 받는다
+    setWeather(null);
+    provider
+      .getWeather(station, new Date())
+      .then((wx) => {
+        if (alive) setWeather(wx);
+      })
+      .catch(() => {});
     return () => {
       alive = false;
     };
@@ -99,6 +109,11 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
   const dirText =
     state.direction === 'rising' ? '물이 들어오는 중' : state.direction === 'falling' ? '물이 빠지는 중' : '물이 잠시 멈춘 정조';
 
+  // 보고 있는 시각의 하늘 상태 — 씬 연출(흐림·비·눈)에 반영
+  const hw = pickHour(weather, viewTime);
+  const isNight = viewTime < viewSun.sunrise || viewTime > viewSun.sunset;
+  const wxEmoji = weatherEmoji(hw, isNight);
+
   return (
     <div className="screen">
       <div className="detail-scene">
@@ -110,6 +125,8 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
           windSpeed={wind.speed}
           hour={hourFloat(viewTime)}
           species={feature.species}
+          cloudCover={cloudCoverOf(hw)}
+          precip={precipOf(hw)}
         />
         <div className="detail-topbar">
           <button className="icon-btn" onClick={onBack} aria-label="뒤로">
@@ -137,7 +154,8 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
           </span>
         </div>
         <div className="scene-time-chip">
-          {fmtDayLabel(viewTime, new Date())} {fmtTime(viewTime)} · {dirText}
+          {fmtDayLabel(viewTime, new Date())} {fmtTime(viewTime)}
+          {wxEmoji ? ` ${wxEmoji}` : ''} · {dirText}
         </div>
       </div>
 
@@ -207,7 +225,7 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
 
       <div className="data-note">
         {isLiveMode()
-          ? '국립해양조사원 조석예보 기준'
+          ? '국립해양조사원 조석예보 · 기상청 단기예보 기준'
           : '지금은 시뮬레이션 데이터예요. 실제 물때와 달라요!'}
       </div>
     </div>

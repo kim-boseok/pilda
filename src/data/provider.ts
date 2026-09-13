@@ -1,4 +1,4 @@
-import type { DayTide, Station, SunInfo, TideProvider, WindInfo } from '../types';
+import type { DayTide, Station, SunInfo, TideProvider, WeatherInfo, WindInfo } from '../types';
 import { demoProvider } from './demoProvider';
 import { khoaProvider, getKhoaKey } from './khoaProvider';
 
@@ -12,6 +12,7 @@ function dayKey(d: Date): string {
 class SafeProvider implements TideProvider {
   private tideCache = new Map<string, DayTide[]>();
   private windCache = new Map<string, WindInfo>();
+  private weatherCache = new Map<string, WeatherInfo>();
   private primary: TideProvider;
   private fallback: TideProvider | null;
 
@@ -55,6 +56,23 @@ class SafeProvider implements TideProvider {
 
   getSun(station: Station, date: Date): SunInfo {
     return this.primary.getSun(station, date);
+  }
+
+  async getWeather(station: Station, date: Date): Promise<WeatherInfo> {
+    const key = `${station.id}|${dayKey(date)}`;
+    const cached = this.weatherCache.get(key);
+    if (cached) return cached;
+
+    let wx: WeatherInfo;
+    try {
+      wx = await this.primary.getWeather(station, date);
+    } catch (e) {
+      if (!this.fallback) throw e;
+      console.warn('[pilda] 기상청 날씨 실패 → 데모 날씨로 폴백:', e);
+      wx = await this.fallback.getWeather(station, date);
+    }
+    this.weatherCache.set(key, wx);
+    return wx;
   }
 }
 

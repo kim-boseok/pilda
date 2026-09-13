@@ -1,6 +1,9 @@
-import type { DayTide, Station, SunInfo, TideExtreme, TideProvider, WindInfo } from '../types';
+import type {
+  DayTide, Station, SunInfo, TideExtreme, TideProvider, WeatherInfo, WindInfo,
+} from '../types';
 import { getKhoaCode } from './stations';
 import { computeSun, computeWind, getMul, getMulName } from './demoProvider';
+import { fetchKmaWeather } from './kmaWeather';
 
 export const KHOA_KEY_STORAGE = 'pilda_khoa_key';
 
@@ -109,5 +112,12 @@ export const khoaProvider: TideProvider = {
 
   getSun(station: Station, date: Date): SunInfo {
     return computeSun(station, date);
+  },
+
+  // 하늘/강수는 기상청 단기예보 — 공공데이터포털 키 그대로 사용
+  async getWeather(station: Station): Promise<WeatherInfo> {
+    const key = getKhoaKey();
+    if (!key) throw new Error('API 키가 없습니다');
+    return fetchKmaWeather(station.lat, station.lon, key);
   },
 };

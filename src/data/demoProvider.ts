@@ -1,4 +1,6 @@
-import type { DayTide, Station, SunInfo, TideExtreme, TideProvider, WindInfo } from '../types';
+import type {
+  DayTide, HourWeather, Station, SunInfo, TideExtreme, TideProvider, WeatherInfo, WindInfo,
+} from '../types';
 
 // ── 천문 상수 ──
 const M2_HOURS = 12.4206;          // 반일주조 M2 주기 (h)
@@ -169,6 +171,39 @@ export function computeWind(stationId: string, date: Date): WindInfo {
 }
 
 // ─────────────────────────────────────────────
+// 날씨 (시드 기반 — 하루 단위 분위기 + 시간대별 변주)
+// ─────────────────────────────────────────────
+
+export function computeWeather(stationId: string, date: Date): WeatherInfo {
+  const d0 = localMidnight(date);
+  const hours: HourWeather[] = [];
+  for (let day = -1; day <= 2; day++) {
+    const dayStart = new Date(d0.getTime() + day * MS_PER_DAY);
+    const key = `${stationId}:${dayStart.getFullYear()}-${dayStart.getMonth()}-${dayStart.getDate()}`;
+    const mood = unitHash(key + ':wx'); // 하루 분위기: 맑음/구름/비
+    for (let h = 0; h < 24; h++) {
+      const u = unitHash(key + ':h' + h);
+      let sky = 1;
+      let pty = 0;
+      let pop = 10;
+      if (mood > 0.86) {
+        sky = 4;
+        pty = u > 0.45 ? 1 : 0;
+        pop = 70;
+      } else if (mood > 0.62) {
+        sky = u > 0.5 ? 3 : 4;
+        pop = 30;
+      } else if (u > 0.78) {
+        sky = 3;
+        pop = 20;
+      }
+      hours.push({ time: new Date(dayStart.getTime() + h * MS_PER_HOUR), sky, pty, pop });
+    }
+  }
+  return { hours, source: 'demo' };
+}
+
+// ─────────────────────────────────────────────
 // Provider
 // ─────────────────────────────────────────────
 
@@ -186,5 +221,9 @@ export const demoProvider: TideProvider = {
 
   getSun(station: Station, date: Date): SunInfo {
     return computeSun(station, date);
+  },
+
+  async getWeather(station: Station, date: Date): Promise<WeatherInfo> {
+    return computeWeather(station.id, date);
   },
 };

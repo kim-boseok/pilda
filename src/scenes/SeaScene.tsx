@@ -24,6 +24,10 @@ export interface SeaSceneProps {
   hour: number;
   /** 이 갯벌의 대표 생물 — 씬에 등장할 생물 결정 */
   species?: string[];
+  /** 구름량 0(쾌청)~1(잔뜩 흐림) — 기상청 하늘상태 기반 */
+  cloudCover?: number;
+  /** 강수 연출 — 비/눈 */
+  precip?: 'none' | 'rain' | 'snow';
 }
 
 const MUD_TOP: RGB = [138, 104, 80];
@@ -78,6 +82,11 @@ interface SceneState {
   caps: { x: number; f: number; tw: number }[];
   /** 바람 결 — 하늘을 스치는 스우시 라인 */
   windLines: { x: number; y: number; len: number }[];
+  /** 빗방울/눈송이 — x,y는 0~1 정규화, f는 크기·속도 편차 */
+  drops: { x: number; y: number; f: number }[];
+  /** 빗방울이 수면에 만드는 동심원 */
+  ripples: { x: number; y: number; r: number; a: number }[];
+  rippleTimer: number;
   /** 포인트 상점에서 구매한 꾸미기 아이템 */
   decor: { lighthouse: boolean; boat: boolean; gulls: boolean };
   /** 돛단배 위치 (0~1) 와 진행 방향 */
@@ -96,7 +105,7 @@ export default function SeaScene(props: SeaSceneProps): JSX.Element {
   useEffect(() => {
     // rAF가 멈춘 숨김 탭에서도 수위 변경이 반영되도록 스냅 렌더
     if (document.hidden) hiddenDrawRef.current?.();
-  }, [props.ratio, props.hour, props.direction]);
+  }, [props.ratio, props.hour, props.direction, props.cloudCover, props.precip]);
 
   useEffect(() => {
     const box = boxRef.current;
@@ -161,6 +170,9 @@ export default function SeaScene(props: SeaSceneProps): JSX.Element {
         y: 0.18 + i * 0.22 + rnd() * 0.08,
         len: 40 + rnd() * 40,
       })),
+      drops: Array.from({ length: 40 }, () => ({ x: rnd(), y: rnd(), f: rnd() })),
+      ripples: [],
+      rippleTimer: 0,
       decor: {
         lighthouse: hasItem('lighthouse'),
         boat: hasItem('boat'),
@@ -246,6 +258,8 @@ function draw(ctx: CanvasRenderingContext2D, S: SceneState, p: SeaSceneProps, dt
   const waveH = Math.min(3, 0.2 + wind * wind * 0.012);
   const heightN = clamp01((waveH - 0.4) / 2.2);
   const dirSign = p.direction === 'rising' ? 1 : p.direction === 'falling' ? -1 : 0.15;
+  // 구름량 0~1 — 흐릴수록 하늘·바다가 잿빛으로 가라앉는다
+  const cc = clamp01(p.cloudCover ?? 0);
 
   const horizonY = h * 0.3;
   const edgeBase = lerp(style.edgeLow, style.edgeHigh, disp) * h;
@@ -285,13 +299,22 @@ function draw(ctx: CanvasRenderingContext2D, S: SceneState, p: SeaSceneProps, dt
     ctx.fillRect(0, horizonY - h * 0.13, w, h * 0.13 + 2);
   }
 
+  // ---- 흐림 장막 — 구름이 많을수록 하늘이 잿빛으로 덮인다 ----
+  if (cc > 0.02) {
+    const veilA = (0.38 * daylight + 0.22 * night) * cc;
+    ctx.fillStyle = `rgba(158,168,182,${veilA})`;
+    ctx.fillRect(0, 0, w, horizonY + 2);
+  }
+
   // ---- 별·달 (밤) ----
   const moonX = w * 0.78;
   const moonY = horizonY * 0.38;
-  if (night > 0.03) {
+  // 흐린 밤엔 별·달이 구름 뒤로 흐려진다
+  const nightClear = night * (1 - cc * 0.75);
+  if (nightClear > 0.03) {
     for (let i = 0; i < S.stars.length; i++) {
       const st = S.stars[i];
-      const a = night * (0.35 + 0.45 * Math.sin(t * 1.8 + st.tw));
+      const a = nightClear * (0.35 + 0.45 * Math.sin(t * 1.8 + st.tw));
       if (a <= 0.02) continue;
       ctx.fillStyle = `rgba(255,250,230,${a})`;
       ctx.beginPath();
@@ -299,23 +322,23 @@ function draw(ctx: CanvasRenderingContext2D, S: SceneState, p: SeaSceneProps, dt
       ctx.fill();
     }
     // 달무리 (부드러운 글로우)
-    const moonKey = `${(night * 20) | 0}|${w | 0}|${h | 0}`;
+    const moonKey = `${(nightClear * 20) | 0}|${w | 0}|${h | 0}`;
     let moonGrad = S.moonGrad;
     if (moonKey !== S.moonKey || !moonGrad) {
       moonGrad = ctx.createRadialGradient(moonX, moonY, 4, moonX, moonY, 58);
-      moonGrad.addColorStop(0, `rgba(250,244,214,${0.5 * night})`);
-      moonGrad.addColorStop(0.35, `rgba(250,244,214,${0.14 * night})`);
+      moonGrad.addColorStop(0, `rgba(250,244,214,${0.5 * nightClear})`);
+      moonGrad.addColorStop(0.35, `rgba(250,244,214,${0.14 * nightClear})`);
       moonGrad.addColorStop(1, 'rgba(250,244,214,0)');
       S.moonGrad = moonGrad;
       S.moonKey = moonKey;
     }
     ctx.fillStyle = moonGrad;
     ctx.fillRect(moonX - 60, moonY - 60, 120, 120);
-    ctx.fillStyle = `rgba(250,244,214,${0.95 * night})`;
+    ctx.fillStyle = `rgba(250,244,214,${0.95 * nightClear})`;
     ctx.beginPath();
     ctx.arc(moonX, moonY, 12, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = `rgba(216,208,176,${0.6 * night})`;
+    ctx.fillStyle = `rgba(216,208,176,${0.6 * nightClear})`;
     ctx.beginPath();
     ctx.arc(moonX - 4, moonY - 2, 2.4, 0, Math.PI * 2);
     ctx.arc(moonX + 3, moonY + 4, 1.7, 0, Math.PI * 2);
@@ -326,7 +349,9 @@ function draw(ctx: CanvasRenderingContext2D, S: SceneState, p: SeaSceneProps, dt
   const sunT = (p.hour - 6.0) / (18.8 - 6.0);
   let sunX = -1;
   let sunAlt = 0;
-  if (sunT > 0 && sunT < 1 && daylight > 0.1) {
+  // 잔뜩 흐리면(구름 0.92 이상) 해가 아예 가려진다
+  const sunLight = daylight * (1 - cc * 0.8);
+  if (sunT > 0 && sunT < 1 && daylight > 0.1 && cc < 0.92) {
     sunAlt = Math.sin(Math.PI * sunT);
     sunX = lerp(0.14, 0.86, sunT) * w;
     const sy = horizonY * (1 - sunAlt * 0.82) - 2;
@@ -335,30 +360,36 @@ function draw(ctx: CanvasRenderingContext2D, S: SceneState, p: SeaSceneProps, dt
     const cr = 255;
     const cg = (246 - warm * 82) | 0;
     const cb = (214 - warm * 126) | 0;
-    const sunKey = `${(sunT * 170) | 0}|${w | 0}|${h | 0}`;
+    const sunKey = `${(sunT * 170) | 0}|${(cc * 10) | 0}|${w | 0}|${h | 0}`;
     let sunGrad = S.sunGrad;
     if (sunKey !== S.sunKey || !sunGrad) {
       sunGrad = ctx.createRadialGradient(sunX, sy, r * 0.4, sunX, sy, r * 5.5);
-      sunGrad.addColorStop(0, `rgba(${cr},${cg},${cb},${0.5 * daylight})`);
-      sunGrad.addColorStop(0.35, `rgba(${cr},${cg},${cb},${0.14 * daylight})`);
+      sunGrad.addColorStop(0, `rgba(${cr},${cg},${cb},${0.5 * sunLight})`);
+      sunGrad.addColorStop(0.35, `rgba(${cr},${cg},${cb},${0.14 * sunLight})`);
       sunGrad.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
       S.sunGrad = sunGrad;
       S.sunKey = sunKey;
     }
     ctx.fillStyle = sunGrad;
     ctx.fillRect(sunX - r * 5.5, sy - r * 5.5, r * 11, Math.min(r * 11, horizonY + 2 - (sy - r * 5.5)));
-    ctx.fillStyle = `rgba(${cr},${cg},${cb},${0.96 * daylight})`;
+    ctx.fillStyle = `rgba(${cr},${cg},${cb},${0.96 * sunLight})`;
     ctx.beginPath();
     ctx.arc(sunX, sy, r, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // ---- 구름 (2톤: 그늘진 밑면 + 빛 받은 봉우리) ----
-  const cloudCol = css(pal.cloud, pal.cloudAlpha);
-  S.scratchA[0] = pal.cloud[0] + (255 - pal.cloud[0]) * 0.55;
-  S.scratchA[1] = pal.cloud[1] + (255 - pal.cloud[1]) * 0.55;
-  S.scratchA[2] = pal.cloud[2] + (255 - pal.cloud[2]) * 0.55;
-  const cloudLite = css(S.scratchA, Math.min(1, pal.cloudAlpha + 0.06));
+  // ---- 구름 (2톤: 그늘진 밑면 + 빛 받은 봉우리) — 흐릴수록 잿빛으로 짙어진다 ----
+  const gB = cc * 0.6;
+  S.scratchB[0] = pal.cloud[0] + (136 - pal.cloud[0]) * gB;
+  S.scratchB[1] = pal.cloud[1] + (146 - pal.cloud[1]) * gB;
+  S.scratchB[2] = pal.cloud[2] + (160 - pal.cloud[2]) * gB;
+  const cloudA = Math.min(1, pal.cloudAlpha + cc * 0.35);
+  const cloudCol = css(S.scratchB, cloudA);
+  const liteK = 0.55 * (1 - cc * 0.5);
+  S.scratchA[0] = S.scratchB[0] + (255 - S.scratchB[0]) * liteK;
+  S.scratchA[1] = S.scratchB[1] + (255 - S.scratchB[1]) * liteK;
+  S.scratchA[2] = S.scratchB[2] + (255 - S.scratchB[2]) * liteK;
+  const cloudLite = css(S.scratchA, Math.min(1, cloudA + 0.06));
   for (let i = 0; i < S.clouds.length; i++) {
     const c = S.clouds[i];
     // 바람이 셀수록 구름이 빨리 흐른다
@@ -419,7 +450,8 @@ function draw(ctx: CanvasRenderingContext2D, S: SceneState, p: SeaSceneProps, dt
   drawFlatDetail(ctx, S, p, pal, mudK, edgeY, flatH, exposure, dt);
 
   // ---- 바다 ----
-  const light = pal.waterLight;
+  // 흐린 날엔 물빛도 한 톤 가라앉는다
+  const light = pal.waterLight * (1 - cc * 0.22);
   const seaKey = `${h | 0}|${p.region}|${(light * 24) | 0}`;
   let seaGrad = S.seaGrad;
   if (seaKey !== S.seaKey || !seaGrad) {
@@ -527,7 +559,7 @@ function draw(ctx: CanvasRenderingContext2D, S: SceneState, p: SeaSceneProps, dt
 
   // 햇빛 물기둥 반영 (글리터)
   if (sunX >= 0 && edgeY > horizonY + 20) {
-    const gA = (0.08 + 0.22 * (1 - sunAlt)) * daylight * light;
+    const gA = (0.08 + 0.22 * (1 - sunAlt)) * sunLight * light;
     ctx.fillStyle = `rgba(255,228,170,${gA})`;
     for (let y = horizonY + 6; y < edgeY - 6; y += 8) {
       const f = (y - horizonY) / (edgeY - horizonY);
@@ -537,9 +569,9 @@ function draw(ctx: CanvasRenderingContext2D, S: SceneState, p: SeaSceneProps, dt
   }
 
   // 달빛 반영
-  if (night > 0.05 && edgeY > horizonY + 20) {
+  if (nightClear > 0.05 && edgeY > horizonY + 20) {
     const mx = w * 0.78;
-    ctx.fillStyle = `rgba(246,240,206,${0.16 * night})`;
+    ctx.fillStyle = `rgba(246,240,206,${0.16 * nightClear})`;
     for (let y = horizonY + 8; y < edgeY - 6; y += 9) {
       const f = (y - horizonY) / (edgeY - horizonY);
       const ww = (4 + f * 16) * (0.6 + 0.4 * Math.sin(t * 2 + y * 0.35));
@@ -603,6 +635,72 @@ function draw(ctx: CanvasRenderingContext2D, S: SceneState, p: SeaSceneProps, dt
     ctx.beginPath();
     ctx.ellipse(fp.x * w, edgeY + 3 + fp.yo * (1.3 - fp.a), fp.r, fp.r * 0.28, 0, 0, Math.PI * 2);
     ctx.fill();
+  }
+
+  // ---- 비·눈 ----
+  if (p.precip === 'rain') {
+    // 빗줄기 — 바람이 셀수록 비스듬히 쏟아진다
+    const slant = (4 + windN * 22) * 0.4;
+    ctx.strokeStyle = `rgba(196,214,236,${0.2 + 0.12 * daylight})`;
+    ctx.lineWidth = 1;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let i = 0; i < S.drops.length; i++) {
+      const d = S.drops[i];
+      d.y += dt * (1.35 + d.f * 0.7);
+      if (d.y > 1.02) {
+        d.y -= 1.05;
+        d.x = S.rnd();
+      }
+      const dx = d.x * w;
+      const dy = d.y * h;
+      const len = 8 + d.f * 8;
+      ctx.moveTo(dx, dy);
+      ctx.lineTo(dx - slant * (0.6 + d.f * 0.6), dy + len);
+    }
+    ctx.stroke();
+    // 빗방울이 수면에 만드는 동심원
+    S.rippleTimer -= dt;
+    if (S.rippleTimer <= 0 && edgeY > horizonY + 16 && S.ripples.length < 14) {
+      S.ripples.push({
+        x: S.rnd(),
+        y: horizonY + 8 + S.rnd() * (edgeY - horizonY - 10),
+        r: 0.8,
+        a: 0.45,
+      });
+      S.rippleTimer = 0.1;
+    }
+  } else if (p.precip === 'snow') {
+    // 눈송이 — 하늘하늘 흔들리며 내려온다
+    ctx.fillStyle = `rgba(246,250,254,${0.55 + 0.25 * daylight})`;
+    for (let i = 0; i < S.drops.length; i++) {
+      const d = S.drops[i];
+      d.y += dt * (0.07 + d.f * 0.06);
+      if (d.y > 1.02) {
+        d.y -= 1.05;
+        d.x = S.rnd();
+      }
+      const wob = Math.sin(t * (0.8 + d.f) + d.f * 9) * 0.012;
+      ctx.beginPath();
+      ctx.arc((d.x + wob) * w, d.y * h, 0.9 + d.f * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  // 동심원은 비가 그친 뒤에도 남은 것들이 스르르 사라진다
+  for (let i = S.ripples.length - 1; i >= 0; i--) {
+    const rp = S.ripples[i];
+    rp.r += dt * 13;
+    rp.a -= dt * 0.9;
+    if (rp.a <= 0.02 || rp.y > edgeY - 2) {
+      S.ripples.splice(i, 1);
+      continue;
+    }
+    const f = clamp01((rp.y - horizonY) / Math.max(1, edgeY - horizonY));
+    ctx.strokeStyle = `rgba(255,255,255,${rp.a * (0.3 + 0.4 * f) * light})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(rp.x * w, rp.y, rp.r * (0.4 + 0.6 * f), rp.r * 0.3 * (0.4 + 0.6 * f), 0, 0, Math.PI * 2);
+    ctx.stroke();
   }
 
   // ---- 갈매기 ----

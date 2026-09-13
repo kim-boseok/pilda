@@ -73,10 +73,28 @@ export interface SunInfo {
   sunset: Date;
 }
 
+/** 시간대별 하늘 상태 (기상청 단기예보 SKY/PTY/POP) */
+export interface HourWeather {
+  time: Date;
+  /** 하늘: 1 맑음 · 3 구름많음 · 4 흐림 */
+  sky: number;
+  /** 강수형태: 0 없음 · 1 비 · 2 비/눈 · 3 눈 · 4 소나기 */
+  pty: number;
+  /** 강수확률 % */
+  pop: number;
+}
+
+export interface WeatherInfo {
+  hours: HourWeather[];
+  source: 'kma' | 'demo';
+}
+
 /** 조석 데이터 공급자 인터페이스 — 데모/KHOA 모두 구현 */
 export interface TideProvider {
   /** date가 속한 날 포함 전후 하루씩, 총 3일치 반환 (보간 경계 처리용) */
   getTides(stationId: string, date: Date): Promise<DayTide[]>;
   getWind(stationId: string, date: Date): Promise<WindInfo>;
   getSun(station: Station, date: Date): SunInfo;
+  /** 시간대별 하늘/강수 예보 — 씬 연출용 */
+  getWeather(station: Station, date: Date): Promise<WeatherInfo>;
 }

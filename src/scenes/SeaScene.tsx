@@ -67,6 +67,13 @@ interface SceneState {
   speckles: { x: number; d: number; r: number; dark: boolean }[];
   /** 수면 잔반짝임 */
   sparks: { x: number; f: number; tw: number }[];
+  /** 밀려와 부서지는 파도(브레이커) — p: 진행도 0(수평선)~1(물가) */
+  breakers: { p: number; ph: number; amp: number }[];
+  breakTimer: number;
+  /** 바람 셀 때 먼바다에 이는 흰 물머리 */
+  caps: { x: number; f: number; tw: number }[];
+  /** 바람 결 — 하늘을 스치는 스우시 라인 */
+  windLines: { x: number; y: number; len: number }[];
   /** 포인트 상점에서 구매한 꾸미기 아이템 */
   decor: { lighthouse: boolean; boat: boolean; gulls: boolean };
   /** 돛단배 위치 (0~1) 와 진행 방향 */
@@ -131,6 +138,18 @@ export default function SeaScene(props: SeaSceneProps): JSX.Element {
         x: rnd(),
         f: 0.15 + rnd() * 0.8,
         tw: rnd() * Math.PI * 2,
+      })),
+      breakers: [],
+      breakTimer: 2,
+      caps: Array.from({ length: 26 }, () => ({
+        x: rnd(),
+        f: rnd(),
+        tw: rnd() * Math.PI * 2,
+      })),
+      windLines: Array.from({ length: 3 }, (_, i) => ({
+        x: rnd() * 1.2 - 0.1,
+        y: 0.18 + i * 0.22 + rnd() * 0.08,
+        len: 40 + rnd() * 40,
       })),
       decor: {
         lighthouse: hasItem('lighthouse'),
@@ -211,6 +230,8 @@ function draw(ctx: CanvasRenderingContext2D, S: SceneState, p: SeaSceneProps, dt
   const style = REGION[p.region];
   const wind = Math.max(0, Math.min(p.windSpeed, 20));
   const windK = 0.7 + wind * 0.09;
+  // 바람 세기 0~1 정규화 — 2m/s 이하 잔잔, 13m/s 이상 최대치
+  const windN = clamp01((wind - 2) / 11);
   const dirSign = p.direction === 'rising' ? 1 : p.direction === 'falling' ? -1 : 0.15;
 
   const horizonY = h * 0.3;
@@ -325,9 +346,38 @@ function draw(ctx: CanvasRenderingContext2D, S: SceneState, p: SeaSceneProps, dt
   const cloudLite = css(S.scratchA, Math.min(1, pal.cloudAlpha + 0.06));
   for (let i = 0; i < S.clouds.length; i++) {
     const c = S.clouds[i];
-    c.x += c.speed * dt;
+    // 바람이 셀수록 구름이 빨리 흐른다
+    c.x += c.speed * dt * (1 + windN * 2.2);
     if (c.x > 1.25) c.x = -0.25;
     drawCloud(ctx, c.x * w, c.y * horizonY, c.scale * (w / 380), cloudCol, cloudLite);
+  }
+
+  // ---- 바람 결 — 바람이 좀 불면 하늘에 스우시 라인이 흐른다 ----
+  const windLineA = clamp01((wind - 4) / 9);
+  if (windLineA > 0.02) {
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = `rgba(255,255,255,${(0.1 + 0.16 * windLineA) * (0.4 + 0.6 * daylight)})`;
+    for (let i = 0; i < S.windLines.length; i++) {
+      const wl = S.windLines[i];
+      wl.x += dt * (0.08 + 0.3 * windN);
+      if (wl.x > 1.25) {
+        wl.x = -0.35;
+        wl.y = 0.12 + S.rnd() * 0.55;
+        wl.len = 34 + S.rnd() * 50;
+      }
+      const px = wl.x * w;
+      const py = wl.y * horizonY;
+      const L2 = wl.len;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.bezierCurveTo(px + L2 * 0.35, py - 7, px + L2 * 0.65, py + 7, px + L2, py - 2);
+      ctx.stroke();
+      // 끝에 살짝 말리는 곡선 — 바람의 소용돌이 느낌
+      ctx.beginPath();
+      ctx.arc(px + L2, py - 5, 3.2, Math.PI * 0.4, Math.PI * 1.4);
+      ctx.stroke();
+    }
   }
 
   // ---- 바닥 (모래/갯벌) ----
@@ -359,8 +409,19 @@ function draw(ctx: CanvasRenderingContext2D, S: SceneState, p: SeaSceneProps, dt
   let seaGrad = S.seaGrad;
   if (seaKey !== S.seaKey || !seaGrad) {
     seaGrad = ctx.createLinearGradient(0, horizonY, 0, h);
-    seaGrad.addColorStop(0, css(lerpRGB(S.scratchA, DEEP_NIGHT, style.deep, light)));
-    seaGrad.addColorStop(1, css(lerpRGB(S.scratchB, SHALLOW_NIGHT, style.shallow, light)));
+    // 수평선 바로 아래는 한층 짙은 남색 띠 — 실제 바다의 원근감
+    const dC = lerpRGB(S.scratchA, DEEP_NIGHT, style.deep, light);
+    const deepCss = css(dC);
+    dC[0] *= 0.55; dC[1] *= 0.66; dC[2] *= 0.9;
+    seaGrad.addColorStop(0, css(dC));
+    seaGrad.addColorStop(0.16, deepCss);
+    const shC = lerpRGB(S.scratchB, SHALLOW_NIGHT, style.shallow, light);
+    seaGrad.addColorStop(0.72, css(shC));
+    // 물가 쪽은 햇빛에 밝게 비치는 옥빛
+    shC[0] += (255 - shC[0]) * 0.25 * light;
+    shC[1] += (255 - shC[1]) * 0.22 * light;
+    shC[2] += (255 - shC[2]) * 0.18 * light;
+    seaGrad.addColorStop(1, css(shC));
     S.seaGrad = seaGrad;
     S.seaKey = seaKey;
   }
@@ -417,6 +478,9 @@ function draw(ctx: CanvasRenderingContext2D, S: SceneState, p: SeaSceneProps, dt
     }
   }
 
+  // ---- 밀려와 부서지는 파도 (브레이커) ----
+  drawBreakers(ctx, S, horizonY, edgeY, windN, light, dt);
+
   // 수면 잔반짝임 — 바람 따라 흩어지는 미세 글린트
   if (edgeY > horizonY + 30 && light > 0.5) {
     for (let i = 0; i < S.sparks.length; i++) {
@@ -427,6 +491,20 @@ function draw(ctx: CanvasRenderingContext2D, S: SceneState, p: SeaSceneProps, dt
       const s2 = 0.8 + sp.f * 1.7;
       ctx.fillStyle = `rgba(255,255,255,${a})`;
       ctx.fillRect(sp.x * w, y, s2 * 2.4, s2 * 0.8);
+    }
+  }
+
+  // 흰 물머리(화이트캡) — 바람이 셀 때 먼바다 여기저기서 부서지는 흰 점
+  const capGate = clamp01((wind - 5) / 8) * light;
+  if (capGate > 0.02 && edgeY > horizonY + 26) {
+    for (let i = 0; i < S.caps.length; i++) {
+      const cp = S.caps[i];
+      const a = capGate * Math.max(0, Math.sin(t * (1.3 + cp.f) + cp.tw) - 0.35) * 0.5;
+      if (a <= 0.02) continue;
+      const y = horizonY + 8 + cp.f * (edgeY - horizonY - 18);
+      const s3 = (0.5 + cp.f * 1.6) * (1 + windN * 0.6);
+      ctx.fillStyle = `rgba(255,255,255,${a})`;
+      ctx.fillRect(cp.x * w + Math.sin(t * 0.5 + cp.tw) * 4, y, s3 * 3, s3 * 0.9);
     }
   }
 
@@ -507,6 +585,108 @@ function draw(ctx: CanvasRenderingContext2D, S: SceneState, p: SeaSceneProps, dt
   const gc = night > 0.4 ? 'rgba(210,214,232,0.5)' : 'rgba(90,104,128,0.75)';
   updateGull(ctx, S.gull, dt, t, w, horizonY, gc);
   updateGull(ctx, S.gull2, dt, t + 2, w, horizonY, gc);
+}
+
+/**
+ * 밀려와 부서지는 파도 — 수평선 쪽에서 태어나 물가로 다가오며
+ * 점점 솟아오르다(어두운 파면) 하얗게 부서진다(포말).
+ * 바람이 셀수록 자주, 빠르게, 거칠게 부서진다.
+ */
+function drawBreakers(
+  ctx: CanvasRenderingContext2D,
+  S: SceneState,
+  horizonY: number,
+  edgeY: number,
+  windN: number,
+  light: number,
+  dt: number,
+): void {
+  const { w, t } = S;
+  const span = edgeY - horizonY;
+  if (span < 46) return;
+
+  // 스폰 — 바람 셀수록 간격이 짧고 동시에 더 많이
+  S.breakTimer -= dt;
+  const maxN = 2 + Math.round(windN * 2);
+  if (S.breakTimer <= 0 && S.breakers.length < maxN) {
+    S.breakers.push({
+      p: 0,
+      ph: S.rnd() * Math.PI * 2,
+      amp: 0.7 + S.rnd() * 0.55,
+    });
+    S.breakTimer = (7 - 4.6 * windN) * (0.65 + S.rnd() * 0.7);
+  }
+
+  ctx.lineCap = 'round';
+  for (let bi = S.breakers.length - 1; bi >= 0; bi--) {
+    const b = S.breakers[bi];
+    b.p += dt * (0.08 + 0.07 * windN);
+    if (b.p > 1.08) {
+      S.breakers.splice(bi, 1);
+      continue;
+    }
+    const p2 = b.p;
+    const persp = 0.22 + 0.78 * p2; // 멀면 작게, 가까우면 크게
+    const y = horizonY + span * (0.24 + 0.76 * p2 * p2);
+    const breaking = clamp01((p2 - 0.45) / 0.3); // 중반부터 부서지기 시작
+    const fade = 1 - clamp01((p2 - 0.92) / 0.16); // 물가에서 스러짐
+    const foamA = (0.16 + 0.62 * breaking) * fade * (0.45 + 0.55 * light) * b.amp * (0.7 + 0.5 * windN);
+    if (foamA <= 0.02) continue;
+    const kx = 0.02 / (0.45 + 0.55 * persp);
+    const crest = (x: number) => y + Math.sin(x * kx + b.ph + t * 1.1) * 3.2 * persp;
+    const step = Math.max(10, w / 46);
+
+    // ① 파도가 솟아오른 어두운 앞면 (마루 위쪽 그늘 띠)
+    const faceH = (2.5 + 8 * breaking) * persp;
+    ctx.fillStyle = `rgba(12,44,80,${0.12 * persp * fade * light})`;
+    ctx.beginPath();
+    ctx.moveTo(0, crest(0) - faceH);
+    for (let x = step; x <= w + step; x += step) ctx.lineTo(x, crest(x) - faceH);
+    for (let x = w; x >= -step; x -= step) ctx.lineTo(Math.max(0, x), crest(Math.max(0, x)));
+    ctx.closePath();
+    ctx.fill();
+
+    // ② 마루 아래로 번지는 하얀 포말 (부서진 뒤)
+    if (breaking > 0.02) {
+      const washH = (3 + 15 * breaking) * persp;
+      ctx.fillStyle = `rgba(255,255,255,${foamA * 0.3})`;
+      ctx.beginPath();
+      ctx.moveTo(0, crest(0));
+      for (let x = step; x <= w + step; x += step) ctx.lineTo(x, crest(x));
+      for (let x = w; x >= -step; x -= step) ctx.lineTo(Math.max(0, x), crest(Math.max(0, x)) + washH);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = `rgba(255,255,255,${foamA * 0.28})`;
+      ctx.beginPath();
+      ctx.moveTo(0, crest(0));
+      for (let x = step; x <= w + step; x += step) ctx.lineTo(x, crest(x));
+      for (let x = w; x >= -step; x -= step) ctx.lineTo(Math.max(0, x), crest(Math.max(0, x)) + washH * 0.45);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // ③ 하얀 마루선
+    ctx.strokeStyle = `rgba(255,255,255,${foamA})`;
+    ctx.lineWidth = (1 + 2.6 * persp) * (0.7 + 0.8 * breaking);
+    ctx.beginPath();
+    ctx.moveTo(0, crest(0));
+    for (let x = step; x <= w + step; x += step) ctx.lineTo(x, crest(x));
+    ctx.stroke();
+
+    // ④ 마루 위로 튀는 거품 덩어리
+    if (breaking > 0.25) {
+      const n = (3 + windN * 5) | 0;
+      ctx.fillStyle = `rgba(255,255,255,${foamA * 0.75})`;
+      for (let k = 0; k < n; k++) {
+        const fx = ((b.ph + k * 0.83) % 1 + 1) % 1;
+        const bx = fx * w;
+        const by = crest(bx) - (1.5 + Math.sin(t * 3 + k * 2.1 + b.ph) * 1.2) * persp;
+        ctx.beginPath();
+        ctx.arc(bx, by, (0.9 + (k % 3) * 0.5) * persp * (0.6 + breaking * 0.6), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
 }
 
 /** 상점 아이템: 수평선 등대 — 밤에는 불빛이 돈다 */

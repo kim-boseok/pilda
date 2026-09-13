@@ -23,8 +23,8 @@ export interface RegionStyle {
 
 export const REGION: Record<'west' | 'south' | 'east', RegionStyle> = {
   west: {
-    deep: [63, 125, 168],
-    shallow: [124, 178, 200],
+    deep: [44, 118, 178],
+    shallow: [138, 198, 216],
     edgeLow: 0.46,
     edgeHigh: 0.88,
     layers: [
@@ -37,8 +37,8 @@ export const REGION: Record<'west' | 'south' | 'east', RegionStyle> = {
     sandBottom: [104, 76, 58],
   },
   south: {
-    deep: [38, 150, 150],
-    shallow: [110, 205, 188],
+    deep: [20, 148, 160],
+    shallow: [118, 216, 202],
     edgeLow: 0.54,
     edgeHigh: 0.84,
     layers: [
@@ -51,8 +51,8 @@ export const REGION: Record<'west' | 'south' | 'east', RegionStyle> = {
     sandBottom: [188, 160, 122],
   },
   east: {
-    deep: [22, 110, 176],
-    shallow: [64, 172, 198],
+    deep: [10, 96, 190],
+    shallow: [76, 186, 214],
     edgeLow: 0.66,
     edgeHigh: 0.8,
     layers: [

@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react';
+import type { Station } from '../types';
 import { KHOA_KEY_STORAGE, getKhoaKey, khoaProvider } from '../data/khoaProvider';
 import { fetchKmaWeather } from '../data/kmaWeather';
+import { getBuoyObs } from '../data/khoaObs';
+import { getBeachIndex, getFishingIndex, getMudflatIndex } from '../data/khoaIndices';
+
+/** API 연결 테스트용 기준 지점 (실제 데이터가 확실히 있는 곳) */
+const testStation = (name: string, lat: number, lon: number): Station => ({
+  id: 'ADMIN_TEST', name, region: 'south', lat, lon, mudflat: false, group: '', province: '',
+});
 
 // 관리자 비밀번호의 SHA-256 해시 — 원문은 코드에 남기지 않는다
 const ADMIN_HASH = '280a1172fce2579580ffbe7e01b96a9ccadaec8760c27d7ad30d99d4a3f3dad8';
@@ -16,10 +24,10 @@ const SERVICES: {
 }[] = [
   { id: 'tide', name: '조석예보 (고·저조)', org: '국립해양조사원', use: '물때·조위·애니메이션', status: 'live' },
   { id: 'kma', name: '기상청 단기예보', org: '기상청', use: '하늘·비·눈 씬 연출', status: 'live' },
-  { id: 'buoy', name: '해양관측부이 최신 관측데이터', org: '국립해양조사원', use: '실측 파고·수온·바람 (연동 예정)', status: 'ready' },
-  { id: 'mudflat', name: '갯벌체험지수', org: '국립해양조사원', use: '갯벌체험 5단계 지수 (연동 예정)', status: 'ready' },
-  { id: 'swim', name: '해수욕지수', org: '국립해양조사원', use: '물놀이 적합도 (연동 예정)', status: 'ready' },
-  { id: 'fishing', name: '바다낚시지수', org: '국립해양조사원', use: '낚시 적합도 (연동 예정)', status: 'ready' },
+  { id: 'buoy', name: '해양관측부이 최신 관측데이터', org: '국립해양조사원', use: '실측 파고·수온·바람 (부이 25곳)', status: 'live' },
+  { id: 'mudflat', name: '갯벌체험지수', org: '국립해양조사원', use: '갯벌체험 지수·체험시간', status: 'live' },
+  { id: 'swim', name: '해수욕지수', org: '국립해양조사원', use: '해수욕 적합도 (오전·오후)', status: 'live' },
+  { id: 'fishing', name: '바다낚시지수', org: '국립해양조사원', use: '갯바위 낚시 적합도 (어종별)', status: 'live' },
 ];
 
 async function sha256Hex(s: string): Promise<string> {
@@ -142,6 +150,28 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         const now = wx.hours[0];
         const skyTxt = now.pty > 0 ? '비/눈' : now.sky >= 4 ? '흐림' : now.sky >= 3 ? '구름많음' : '맑음';
         setTestResult({ id, ok: true, msg: `정상 연결 — 인천 예보 ${wx.hours.length}시간분 수신 (지금 ${skyTxt}, 강수확률 ${now.pop}%)` });
+      } else if (id === 'buoy') {
+        const o = await getBuoyObs(testStation('해운대', 35.1587, 129.1604));
+        if (!o) throw new Error('부이 응답이 없습니다');
+        const parts = [
+          o.waveHeight !== null ? `파고 ${o.waveHeight}m` : null,
+          o.waterTemp !== null ? `수온 ${o.waterTemp}℃` : null,
+          o.windSpeed !== null ? `풍속 ${o.windSpeed}m/s` : null,
+        ].filter(Boolean).join(' · ');
+        setTestResult({ id, ok: true, msg: `정상 연결 — ${o.buoyName} 부이 실측: ${parts}` });
+      } else if (id === 'mudflat') {
+        const m = await getMudflatIndex(testStation('사천', 34.9008, 128.023), new Date());
+        if (!m) throw new Error('갯벌체험지수 응답이 없습니다');
+        setTestResult({ id, ok: true, msg: `정상 연결 — ${m.villageName} 오늘 ${m.grade} (체험 ${m.beginTm}~${m.endTm})` });
+      } else if (id === 'swim') {
+        const b = await getBeachIndex(testStation('대천', 36.30555, 126.51601), new Date());
+        if (!b) throw new Error('해수욕지수 응답이 없습니다');
+        setTestResult({ id, ok: true, msg: `정상 연결 — ${b.beachName} 오늘 오전 ${b.am ?? '—'} · 오후 ${b.pm ?? '—'}` });
+      } else if (id === 'fishing') {
+        const f = await getFishingIndex(testStation('가거도', 34.07308, 125.08805), new Date());
+        if (!f) throw new Error('바다낚시지수 응답이 없습니다');
+        const first = f.entries[0];
+        setTestResult({ id, ok: true, msg: `정상 연결 — ${f.spotName} ${first.fish} 오전 ${first.am ?? '—'} · 오후 ${first.pm ?? '—'} (어종 ${f.entries.length}종)` });
       }
     } catch (e) {
       setTestResult({ id, ok: false, msg: e instanceof Error ? e.message : String(e) });
@@ -198,7 +228,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                     </small>
                   </div>
                 </div>
-                {(s.id === 'tide' || s.id === 'kma') && (
+                {s.status === 'live' && (
                   <button
                     className="btn btn-ghost admin-svc-test"
                     onClick={() => void runTest(s.id)}

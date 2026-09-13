@@ -14,6 +14,11 @@ import WeekView from '../components/WeekView';
 import AlarmSheet from '../components/AlarmSheet';
 import { isFav, toggleFav } from '../lib/favorites';
 import { TAG_INFO, getFeature, speciesIcon } from '../data/features';
+import { getBuoyObs } from '../data/khoaObs';
+import type { BuoyObs } from '../data/khoaObs';
+import { getBeachIndex, getFishingIndex, getMudflatIndex } from '../data/khoaIndices';
+import type { BeachIndex, FishingIndex, MudflatIndex } from '../data/khoaIndices';
+import SeaIndexCards from '../components/SeaIndexCards';
 import { fmtDayLabel, fmtTime, hourFloat } from '../lib/format';
 
 const SLIDER_HOURS = 36;
@@ -33,6 +38,12 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
   const [alarmOpen, setAlarmOpen] = useState(false);
   const [alarmPick, setAlarmPick] = useState<TideExtreme | null>(null);
   const [fav, setFav] = useState(() => isFav(station.id));
+  const [obs, setObs] = useState<BuoyObs | null>(null);
+  const [indices, setIndices] = useState<{
+    mud: MudflatIndex | null;
+    beach: BeachIndex | null;
+    fish: FishingIndex | null;
+  }>({ mud: null, beach: null, fish: null });
 
   useEffect(() => {
     setFav(isFav(station.id));
@@ -64,10 +75,42 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
         if (alive) setWeather(wx);
       })
       .catch(() => {});
+    // 가까운 부이의 실측 파고·수온·바람 — 없으면 조용히 추정치 유지
+    setObs(null);
+    getBuoyObs(station)
+      .then((o) => {
+        if (alive) setObs(o);
+      })
+      .catch(() => {});
     return () => {
       alive = false;
     };
   }, [station]);
+
+  // 바다 지수 (갯벌체험·해수욕·갯바위낚시) — 보고 있는 날짜 기준, 지점 성격에 맞는 것만
+  const viewDayStr = days
+    ? (days.find((d) => d.date.toDateString() === viewTime.toDateString()) ?? days[1] ?? days[0])
+        .date.toDateString()
+    : null;
+  useEffect(() => {
+    if (!viewDayStr) return;
+    let alive = true;
+    const d = new Date(viewDayStr);
+    const wantMud = station.mudflat || feature.tags.includes('mudflat');
+    const wantBeach =
+      feature.tags.includes('beach') || /해수욕장|해변/.test(station.name);
+    const wantFish = feature.tags.includes('fishing');
+    Promise.all([
+      wantMud ? getMudflatIndex(station, d) : Promise.resolve(null),
+      wantBeach ? getBeachIndex(station, d) : Promise.resolve(null),
+      wantFish ? getFishingIndex(station, d) : Promise.resolve(null),
+    ]).then(([mud, beach, fish]) => {
+      if (alive) setIndices({ mud, beach, fish });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [station, feature, viewDayStr]);
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -195,6 +238,7 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
             setAlarmOpen(true);
           }}
         />
+        <SeaIndexCards mud={indices.mud} beach={indices.beach} fish={indices.fish} />
         <TideTimeline
           extremes={visibleExtremes}
           viewTime={viewTime}
@@ -216,6 +260,8 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
           sun={sun}
           mulName={viewDay.mulName}
           levelText={`현재 수위 ${Math.round(state.level)}cm`}
+          obs={obs}
+          showObs={isNow}
         />
       </div>
 

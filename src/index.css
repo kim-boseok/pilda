@@ -1740,3 +1740,66 @@ button.golden-chip:active {
 .my-section {
   margin: 0 20px 16px;
 }
+
+/* 바다 지수 카드 (갯벌체험·해수욕·갯바위낚시) */
+.index-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.index-title {
+  font-size: 15px;
+  font-weight: 800;
+  margin: 0;
+}
+.idx-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.idx-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.idx-name {
+  font-size: 14px;
+  font-weight: 700;
+}
+.idx-grade {
+  font-size: 14px;
+  font-weight: 800;
+}
+.idx-grade.none {
+  color: var(--text-weak);
+  font-weight: 600;
+}
+.idx-ampm {
+  font-size: 13px;
+  color: var(--text-sub);
+}
+.idx-row small,
+.idx-spot {
+  font-size: 12px;
+  color: var(--text-weak);
+}
+.idx-fish {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-sub);
+  padding: 4px 0 0;
+}
+.idx-src {
+  font-size: 11px;
+  color: var(--text-weak);
+}
+
+/* 부이 실측 출처 표기 */
+.info-card .s.obs-src {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-weak);
+}

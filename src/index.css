@@ -441,6 +441,67 @@ button {
   border-color: var(--primary);
 }
 
+.admin-svcs {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.admin-svcs li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.admin-svcs li:last-child {
+  border-bottom: none;
+}
+
+.admin-svc-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.admin-svc-main b {
+  display: block;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.admin-svc-main small {
+  display: block;
+  font-size: 12px;
+  color: var(--text-weak);
+}
+
+.admin-svc-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.admin-svc-dot.live {
+  background: var(--good, #17b26a);
+}
+
+.admin-svc-dot.ready {
+  background: #f0a75a;
+}
+
+.admin-svc-test {
+  flex: none;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
 .admin-test {
   margin-top: 12px;
   font-size: 13px;

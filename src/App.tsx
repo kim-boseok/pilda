@@ -10,6 +10,7 @@ import { alarmText, checkAlarms } from './lib/alarms';
 
 export default function App() {
   const [hash, setHash] = useState(() => location.hash);
+  const [path, setPath] = useState(() => location.pathname);
   // 앱을 켜면 항상 홈 화면부터 시작한다 (마지막 본 바다 자동 복원 없음)
   const [station, setStation] = useState<Station | null>(null);
 
@@ -31,7 +32,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const onPop = () => setStation(null);
+    const onPop = () => {
+      setStation(null);
+      setPath(location.pathname);
+    };
     const onHash = () => setHash(location.hash);
     window.addEventListener('popstate', onPop);
     window.addEventListener('hashchange', onHash);
@@ -46,13 +50,18 @@ export default function App() {
     setStation(s);
   };
 
-  // 숨은 관리자 페이지: URL 뒤에 #admin 을 붙여야만 접근 가능
+  // 관리자 페이지: /admin 주소 또는 #admin 으로 접근 (비밀번호 필요)
   // 하단 탭바는 홈/게임 화면에서만 보인다 (상세·관리자 화면에서는 숨김)
-  const showTabbar = hash !== '#admin' && !station;
+  const isAdmin = hash === '#admin' || path === '/admin';
+  const showTabbar = !isAdmin && !station;
   const screen =
-    hash === '#admin' ? (
+    isAdmin ? (
       <AdminScreen
         onBack={() => {
+          if (location.pathname === '/admin') {
+            history.replaceState(null, '', '/');
+            setPath('/');
+          }
           location.hash = '';
         }}
       />

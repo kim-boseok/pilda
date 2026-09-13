@@ -20,26 +20,14 @@ import { getBeachIndex, getFishingIndex, getMudflatIndex } from '../data/khoaInd
 import type { BeachIndex, FishingIndex, MudflatIndex } from '../data/khoaIndices';
 import SeaIndexCards from '../components/SeaIndexCards';
 import { fmtDayLabel, fmtTime, hourFloat } from '../lib/format';
+import { copyText } from '../lib/clipboard';
+import { getAddress } from '../data/stations';
 
 const SLIDER_HOURS = 36;
 
 function todayStart(): Date {
   const n = new Date();
   return new Date(n.getFullYear(), n.getMonth(), n.getDate());
-}
-
-/** 클립보드 복사 (구형 브라우저 폴백 포함) */
-async function copyText(text: string) {
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    ta.remove();
-  }
 }
 
 export default function DetailScreen({ station, onBack }: { station: Station; onBack: () => void }) {
@@ -53,7 +41,6 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
   const [alarmPick, setAlarmPick] = useState<TideExtreme | null>(null);
   const [fav, setFav] = useState(() => isFav(station.id));
   const [copied, setCopied] = useState(false);
-  const [addrCopied, setAddrCopied] = useState(false);
   const [obs, setObs] = useState<BuoyObs | null>(null);
   const [indices, setIndices] = useState<{
     mud: MudflatIndex | null;
@@ -153,14 +140,6 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
     setTimeout(() => setCopied(false), 2000);
   }, [station.id]);
 
-  // 행정구역 주소 (예: '인천광역시 강화군') 복사 — 지도 앱에 붙여넣기 좋게
-  const address = `${station.province} ${station.group}`;
-  const copyAddr = useCallback(async () => {
-    await copyText(address);
-    setAddrCopied(true);
-    setTimeout(() => setAddrCopied(false), 2000);
-  }, [address]);
-
   if (!days || !wind || !sun) {
     return (
       <div className="loading-wrap">
@@ -239,7 +218,7 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
       </div>
 
       <div className="detail-body">
-        <SummaryCard summary={summary} />
+        <SummaryCard summary={summary} address={getAddress(station)} />
         {/* 시간 여행은 바다 씬 변화를 보면서 조작해야 하므로 화면 상단(씬 바로 아래)에 배치 */}
         <TimeSlider
           start={start}
@@ -262,12 +241,6 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
                 {speciesIcon(sp)} {sp} 서식
               </span>
             ))}
-        </div>
-        <div className="sea-addr">
-          <span className="sea-addr-text">📍 {address}</span>
-          <button className="sea-addr-copy" onClick={() => void copyAddr()}>
-            {addrCopied ? '복사됨 ✓' : '복사'}
-          </button>
         </div>
         <GoldenTimes
           day={viewDay}

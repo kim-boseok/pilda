@@ -5,6 +5,7 @@ import { STATIONS_S, CODE_MAP_S } from './stations/south';
 import { STATIONS_J, CODE_MAP_J } from './stations/jeju';
 import { STATIONS_E, CODE_MAP_E } from './stations/east';
 import { STATIONS_X, CODE_MAP_X } from './stations/extra';
+import { ADDRESSES } from './stations/addresses';
 
 // 전국 지점 — 서해 북→남, 남해 서→동, 제주, 동해 남→북 (해안선 순서)
 // STATIONS_X는 해양조사원 지수 API 목록에서 추가한 지점 (행정구역 그룹으로 자동 편입)
@@ -33,4 +34,9 @@ export function getKhoaCode(stationId: string): string {
 
 export function findStation(id: string): Station | undefined {
   return STATIONS.find((s) => s.id === id);
+}
+
+/** 지점의 행정구역 주소 (예: '인천광역시 강화군 강화읍') — 없으면 광역시·도 + 시·군·구 */
+export function getAddress(station: Station): string {
+  return ADDRESSES[station.id] ?? `${station.province} ${station.group}`;
 }

@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# TourAPI 응답 캐시 (재생성 가능, 용량 큼)
+scripts/.tourCache.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

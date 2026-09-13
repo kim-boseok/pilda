@@ -1201,12 +1201,17 @@ input[type='range'].time-range::-webkit-slider-thumb {
 }
 
 .sea-addr-text {
+  flex: 1;
+  min-width: 0;
   font-size: 13px;
   font-weight: 600;
+  line-height: 1.5;
   color: var(--text-sub);
+  word-break: keep-all;
 }
 
 .sea-addr-copy {
+  flex: none;
   padding: 5px 11px;
   border-radius: 999px;
   font-size: 12px;
@@ -1218,6 +1223,99 @@ input[type='range'].time-range::-webkit-slider-thumb {
 
 .sea-addr-copy:active {
   transform: scale(0.93);
+}
+
+/* ---------- 지점 소개 카드 (한국관광공사 관광정보) ---------- */
+.place-title {
+  margin: 12px 4px -4px;
+}
+
+.place-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.place-photo {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: 14px;
+  background: #f2f4f6;
+  display: block;
+}
+
+.place-overview {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text-sub);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.place-overview.open {
+  display: block;
+  overflow: visible;
+}
+
+.place-more {
+  align-self: flex-start;
+  margin-top: -6px;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #4b90e2;
+  background: none;
+}
+
+.place-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 13px 14px;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.place-fact {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.place-fact-label {
+  flex: none;
+  font-weight: 700;
+  color: var(--text-weak);
+}
+
+.place-fact-value {
+  font-weight: 600;
+  color: var(--text-sub);
+  word-break: keep-all;
+}
+
+.place-fact-value.link {
+  color: #4b90e2;
+  text-decoration: none;
+}
+
+.place-home {
+  font-size: 13px;
+  font-weight: 700;
+  color: #4b90e2;
+  text-decoration: none;
+}
+
+.place-source {
+  font-size: 11px;
+  font-weight: 600;
+  color: #b0b8c1;
 }
 
 /* 타임라인 알림 버튼 */

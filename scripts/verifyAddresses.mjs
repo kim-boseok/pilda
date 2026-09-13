@@ -27,11 +27,10 @@ let m;
 while ((m = re.exec(addrSrc))) entries.push({ id: m[1], addr: m[2] });
 console.log(`주소 ${entries.length}개 · 좌표 ${coords.size}개`);
 
-// 통합 명칭 → OSM이 아는 이름
-const ALIAS = { 전남광주통합특별시: '전라남도' };
+// OSM도 이미 '전남광주통합특별시'를 쓰므로 이름 변환 없이 그대로 조회한다
+// (예전엔 '전라남도'로 바꿔 조회했는데, 그게 오히려 전남 지역 전체를 '검색 실패'로 만들었다)
 function toQuery(addr) {
-  const [prov, ...rest] = addr.split(' ');
-  return [ALIAS[prov] ?? prov, ...rest].join(' ');
+  return addr;
 }
 
 function havKm(a, b, c, d) {

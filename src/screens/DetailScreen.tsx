@@ -21,7 +21,8 @@ import type { BeachIndex, FishingIndex, MudflatIndex } from '../data/khoaIndices
 import SeaIndexCards from '../components/SeaIndexCards';
 import { fmtDayLabel, fmtTime, hourFloat } from '../lib/format';
 import { copyText } from '../lib/clipboard';
-import { getAddress } from '../data/stations';
+import { getAddress, getTourInfo } from '../data/stations';
+import PlaceCard from '../components/PlaceCard';
 
 const SLIDER_HOURS = 36;
 
@@ -53,6 +54,7 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
   }, [station]);
 
   const feature = useMemo(() => getFeature(station), [station]);
+  const tour = useMemo(() => getTourInfo(station), [station]);
   const start = useMemo(todayStart, []);
   const isNowRef = useRef(isNow);
   isNowRef.current = isNow;
@@ -278,6 +280,8 @@ export default function DetailScreen({ station, onBack }: { station: Station; on
           obs={obs}
           showObs={isNow}
         />
+        {tour && <div className="section-title place-title">이곳은 어떤 곳인가요</div>}
+        <PlaceCard info={tour} name={station.name} />
       </div>
 
       {alarmOpen && (

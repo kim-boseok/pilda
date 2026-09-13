@@ -66,7 +66,11 @@ export const REGION: Record<'west' | 'south' | 'east', RegionStyle> = {
   },
 };
 
-/** 사인파 표면 y — traceWave/거품 라인이 공유 */
+/**
+ * 사인파 표면 y — traceWave/거품 라인이 공유.
+ * 가로로 흐르지 않고 제자리에서 세로로만 출렁인다:
+ * 파형은 숨쉬듯 커졌다 작아지고, 층 전체가 밀려왔다 물러난다.
+ */
 export function waveY(
   x: number,
   edgeY: number,
@@ -77,8 +81,14 @@ export function waveY(
 ): number {
   const amp = layer.amp * windK;
   const k = (Math.PI * 2) / layer.len;
-  const ph = t * layer.speed * windK * dirSign;
-  return edgeY - layer.lift + Math.sin(x * k + ph) * amp + Math.sin(x * k * 0.37 - ph * 0.6) * amp * 0.4;
+  const breathe = 0.72 + 0.28 * Math.sin(t * layer.speed * windK);
+  // 층 전체의 상하 서지 — 물이 들어왔다 나가는 호흡 (slack일수록 잔잔)
+  const surge = Math.sin(t * layer.speed * 0.6 * windK + layer.len * 0.013) * amp * 0.9 * (0.5 + 0.5 * Math.abs(dirSign));
+  return (
+    edgeY - layer.lift + surge +
+    Math.sin(x * k + layer.len) * amp * breathe +
+    Math.sin(x * k * 0.37 + 1.7) * amp * 0.45 * breathe
+  );
 }
 
 /**

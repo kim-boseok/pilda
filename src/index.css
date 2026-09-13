@@ -1525,7 +1525,7 @@ button.golden-chip:active {
   border-radius: var(--radius);
   overflow: hidden;
   box-shadow: var(--shadow);
-  background: #d3e7fb;
+  background: #f6f9fd;
 }
 .map-canvas {
   width: 100%;

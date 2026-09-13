@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Station } from '../types';
 import { STATIONS } from '../data/stations';
 import type { VisitMap } from '../lib/visits';
+import { PROVINCES } from '../data/koreaGeo';
 
 // ── 좌표계 ────────────────────────────────────────────────
 // 위경도 → [0,1] 정규화 월드 좌표 (위도 35.8° 기준 가로 축척 보정)
@@ -15,32 +16,16 @@ function project(lon: number, lat: number): { x: number; y: number } {
   return { x: ((lon - LON0) * KX) / DEN + OFFX, y: (LAT1 - lat) / DEN };
 }
 
-// 대한민국 본토 외곽선 (단순화, 해안선 시계방향)
-const MAINLAND: [number, number][] = [
-  [126.68, 37.78], [126.55, 37.6], [126.6, 37.4], [126.68, 37.2], [126.75, 37.05],
-  [126.85, 36.98], [126.6, 36.92], [126.3, 36.9], [126.13, 36.72], [126.2, 36.45],
-  [126.4, 36.25], [126.52, 36.05], [126.55, 35.95], [126.42, 35.78], [126.4, 35.55],
-  [126.28, 35.3], [126.32, 35.05], [126.3, 34.78], [126.15, 34.55], [126.3, 34.35],
-  [126.52, 34.3], [126.75, 34.35], [126.95, 34.45], [127.1, 34.38], [127.3, 34.32],
-  [127.52, 34.5], [127.68, 34.6], [127.85, 34.75], [128.05, 34.8], [128.35, 34.8],
-  [128.6, 34.88], [128.85, 35.0], [129.05, 35.08], [129.25, 35.32], [129.38, 35.5],
-  [129.48, 35.75], [129.58, 36.02], [129.42, 36.15], [129.42, 36.45], [129.45, 36.8],
-  [129.42, 37.1], [129.25, 37.35], [129.12, 37.52], [128.95, 37.78], [128.75, 38.05],
-  [128.6, 38.2], [128.42, 38.38], [128.1, 38.32], [127.6, 38.32], [127.1, 38.3],
-  [126.85, 38.1], [126.7, 37.95],
-];
-
-// 제주도 (타원 근사)
-const JEJU: [number, number][] = Array.from({ length: 22 }, (_, i) => {
-  const a = (i / 22) * Math.PI * 2;
-  return [126.53 + Math.cos(a) * 0.37, 33.38 + Math.sin(a) * 0.185] as [number, number];
-});
-
-// 울릉도 (작은 원)
-const ULLEUNG: [number, number][] = Array.from({ length: 10 }, (_, i) => {
-  const a = (i / 10) * Math.PI * 2;
-  return [130.88 + Math.cos(a) * 0.06, 37.5 + Math.sin(a) * 0.05] as [number, number];
-});
+// 실제 시·도 경계(경량화)를 월드 좌표로 미리 투영해 둔다
+const PROV_RINGS: { zone: string; rings: [number, number][][] }[] = PROVINCES.map((p) => ({
+  zone: p.zone,
+  rings: p.rings.map((ring) =>
+    ring.map(([lon, lat]) => {
+      const w = project(lon, lat);
+      return [w.x, w.y] as [number, number];
+    }),
+  ),
+}));
 
 // 자치도(권역)별 색 구역 — 본토 외곽선으로 클리핑해서 칠한다
 // box = [lon0, lat0(남), lon1, lat1(북)], label = 이름 표시 위치
@@ -51,16 +36,16 @@ interface Zone {
   label: [number, number];
 }
 const ZONES: Zone[] = [
-  { name: '경기·인천', box: [124.6, 36.9, 127.3, 38.7], color: '#e2edfb', label: [126.95, 37.5] },
-  { name: '강원', box: [127.3, 37.0, 129.7, 38.7], color: '#ddf2e6', label: [128.35, 37.75] },
-  { name: '충청', box: [124.6, 36.0, 128.1, 36.9], color: '#fdf3d8', label: [126.95, 36.48] },
-  { name: '전북', box: [124.6, 35.45, 127.9, 36.0], color: '#eef6d9', label: [127.05, 35.72] },
-  { name: '전남·광주', box: [124.6, 33.8, 127.78, 35.45], color: '#fde8e0', label: [126.9, 34.98] },
-  { name: '경북', box: [128.1, 35.75, 129.7, 37.0], color: '#ede8f9', label: [128.8, 36.4] },
-  { name: '경남·부산', box: [127.78, 33.8, 129.7, 35.75], color: '#fceaf1', label: [128.35, 35.32] },
-  { name: '제주', box: [125.8, 32.95, 127.3, 33.75], color: '#ffefd8', label: [126.53, 33.68] },
+  { name: '경기·인천', box: [124.6, 36.9, 127.3, 38.7], color: '#eaf2fc', label: [126.95, 37.5] },
+  { name: '강원', box: [127.3, 37.0, 129.7, 38.7], color: '#e9f6ef', label: [128.35, 37.75] },
+  { name: '충청', box: [124.6, 36.0, 128.1, 36.9], color: '#fbf4e0', label: [126.95, 36.48] },
+  { name: '전북', box: [124.6, 35.45, 127.9, 36.0], color: '#f1f7e3', label: [127.05, 35.72] },
+  { name: '전남·광주', box: [124.6, 33.8, 127.78, 35.45], color: '#fceee7', label: [126.9, 34.98] },
+  { name: '경북', box: [128.1, 35.75, 129.7, 37.0], color: '#efecfa', label: [128.8, 36.4] },
+  { name: '경남·부산', box: [127.78, 33.8, 129.7, 35.75], color: '#faecf2', label: [128.35, 35.32] },
+  { name: '제주', box: [125.8, 32.95, 127.3, 33.75], color: '#fdf2e1', label: [126.53, 33.68] },
 ];
-const JEJU_COLOR = '#ffefd8';
+const ZONE_COLOR: Record<string, string> = Object.fromEntries(ZONES.map((z) => [z.name, z.color]));
 
 function unproject(wx: number, wy: number): { lon: number; lat: number } {
   return { lon: ((wx - OFFX) * DEN) / KX + LON0, lat: LAT1 - wy * DEN };
@@ -214,64 +199,63 @@ export default function KoreaMap({ visits, favs, selected, onSelect, focus }: Ko
       y: H / 2 + (wy - v.y) * v.s * base(),
     });
 
-    const tracePoly = (poly: [number, number][], v: View) => {
-      ctx.beginPath();
-      poly.forEach(([lon, lat], i) => {
-        const w = project(lon, lat);
-        const p = toScreen(w.x, w.y, v);
-        if (i === 0) ctx.moveTo(p.x, p.y);
-        else ctx.lineTo(p.x, p.y);
-      });
+    // 월드 좌표 링을 화면 경로로 (dy: 3D 두께용 세로 오프셋 px)
+    const traceRing = (ring: [number, number][], v: View, dy = 0) => {
+      for (let i = 0; i < ring.length; i++) {
+        const p = toScreen(ring[i][0], ring[i][1], v);
+        if (i === 0) ctx.moveTo(p.x, p.y + dy);
+        else ctx.lineTo(p.x, p.y + dy);
+      }
       ctx.closePath();
+    };
+    const traceAll = (v: View, dy = 0) => {
+      ctx.beginPath();
+      for (const pr of PROV_RINGS) for (const ring of pr.rings) traceRing(ring, v, dy);
     };
 
     const draw = (t: number) => {
       const v = cur.current;
       const { visits: vm, favs: fv, selected: sel } = propsRef.current;
 
-      // 바다 배경
+      // 밝은 배경 (은은한 하늘빛 그라데이션)
       const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, '#e3f0fd');
-      g.addColorStop(1, '#d3e7fb');
+      g.addColorStop(0, '#f6f9fd');
+      g.addColorStop(1, '#e9f1f9');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, W, H);
 
-      // 육지 기본색
-      ctx.fillStyle = '#f7f2e8';
-      for (const poly of [MAINLAND, JEJU, ULLEUNG]) {
-        tracePoly(poly, v);
+      // ① 바닥 그림자 — 지도가 떠 있는 듯한 소프트 섀도
+      ctx.save();
+      ctx.shadowColor = 'rgba(37,53,84,0.20)';
+      ctx.shadowBlur = 24;
+      ctx.shadowOffsetY = 16;
+      ctx.fillStyle = '#ffffff';
+      traceAll(v);
+      ctx.fill();
+      ctx.restore();
+
+      // ② 옆면(3D 두께) — 실루엣을 아래로 밀어 채운다
+      const depth = 7;
+      ctx.fillStyle = '#c5cedc';
+      traceAll(v, depth);
+      ctx.fill();
+      ctx.fillStyle = '#cfd7e3';
+      traceAll(v, depth * 0.5);
+      ctx.fill();
+
+      // ③ 윗면 — 시·도별로 권역 파스텔 틴트
+      for (const pr of PROV_RINGS) {
+        ctx.fillStyle = ZONE_COLOR[pr.zone] ?? '#ffffff';
+        ctx.beginPath();
+        for (const ring of pr.rings) traceRing(ring, v);
         ctx.fill();
       }
 
-      // 자치도별 색 구역 — 본토 모양으로 클리핑해서 파스텔로 칠한다
-      ctx.save();
-      tracePoly(MAINLAND, v);
-      ctx.clip();
-      for (const z of ZONES) {
-        const a = project(z.box[0], z.box[3]);
-        const b = project(z.box[2], z.box[1]);
-        const pa = toScreen(a.x, a.y, v);
-        const pb = toScreen(b.x, b.y, v);
-        ctx.fillStyle = z.color;
-        ctx.fillRect(pa.x, pa.y, pb.x - pa.x, pb.y - pa.y);
-        ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(pa.x, pa.y, pb.x - pa.x, pb.y - pa.y);
-      }
-      ctx.restore();
-
-      // 제주는 별도 폴리곤 채색
-      ctx.fillStyle = JEJU_COLOR;
-      tracePoly(JEJU, v);
-      ctx.fill();
-
-      // 외곽선
-      ctx.strokeStyle = '#d9cfbc';
-      ctx.lineWidth = 1.2;
-      for (const poly of [MAINLAND, JEJU, ULLEUNG]) {
-        tracePoly(poly, v);
-        ctx.stroke();
-      }
+      // ④ 시·도 경계선 — 가늘고 옅은 회색 (레퍼런스 스타일)
+      ctx.strokeStyle = 'rgba(146,159,180,0.55)';
+      ctx.lineWidth = 1;
+      traceAll(v);
+      ctx.stroke();
 
       // 지점 점 찍기 (전국 화면에선 옅고 작게 → 확대하면 또렷하게)
       const f = Math.min(2.2, Math.sqrt(v.s));
